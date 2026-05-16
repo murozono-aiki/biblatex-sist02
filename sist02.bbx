@@ -1,0 +1,503 @@
+\ProvidesFile{sist02.bbx}[2026/05/16 v8.0 biblatex bibliography style for SIST02 (Final Strict)]
+
+% ==============================================================================
+% SIST 02 準拠 biblatex スタイルファイル (Bibliography Style)
+% ==============================================================================
+
+\RequireBibliographyStyle{numeric}
+
+% ------------------------------------------------------------------------------
+% 1. 全般的なオプション設定
+% ------------------------------------------------------------------------------
+\ExecuteBibliographyOptions{
+  giveninits=false,
+  maxnames=999,
+  minnames=999,
+  sorting=none,
+  date=iso,
+  urldate=iso,
+  seconds=true,
+  isbn=true,
+  doi=true,
+  eprint=false
+}
+
+% ------------------------------------------------------------------------------
+% 2. 言語判定 (和文 / 欧文) の設定
+% ------------------------------------------------------------------------------
+\newtoggle{isjapanese}
+
+\AtEveryBibitem{%
+  \settoggle{isjapanese}{true}%
+  \iffieldundef{langid}{%
+    \iffieldundef{language}{}{%
+      \ifboolexpr{
+        test {\iffieldequalstr{language}{english}} or
+        test {\iffieldequalstr{language}{french}} or
+        test {\iffieldequalstr{language}{german}} or
+        test {\iffieldequalstr{language}{spanish}} or
+        test {\iffieldequalstr{language}{latin}} or
+        test {\iffieldequalstr{language}{italian}} or
+        test {\iffieldequalstr{language}{dutch}} or
+        test {\iffieldequalstr{language}{portuguese}} or
+        test {\iffieldequalstr{language}{russian}}
+      }{\settoggle{isjapanese}{false}}{}%
+    }%
+  }{%
+    \ifboolexpr{
+      test {\iffieldequalstr{langid}{english}} or
+      test {\iffieldequalstr{langid}{french}} or
+      test {\iffieldequalstr{langid}{german}} or
+      test {\iffieldequalstr{langid}{spanish}} or
+      test {\iffieldequalstr{langid}{latin}} or
+      test {\iffieldequalstr{langid}{italian}} or
+      test {\iffieldequalstr{langid}{dutch}} or
+      test {\iffieldequalstr{langid}{portuguese}} or
+      test {\iffieldequalstr{langid}{russian}}
+    }{\settoggle{isjapanese}{false}}{}%
+  }%
+}
+
+% ------------------------------------------------------------------------------
+% 3. 句読点と区切り文字の設定
+% ------------------------------------------------------------------------------
+\renewcommand*{\labelnamepunct}{\addperiod\space}
+\renewcommand*{\newunitpunct}{\addperiod\space}
+
+\DeclareDelimFormat{multinamedelim}{\iftoggle{isjapanese}{\addcomma\space}{\addsemicolon\space}}
+\DeclareDelimFormat{finalnamedelim}{\iftoggle{isjapanese}{\addcomma\space}{\addsemicolon\space}}
+\DeclareDelimFormat{andothersdelim}{\addspace}
+
+% ------------------------------------------------------------------------------
+% 4. 著者名のフォーマット (SIST02 4.1.1 準拠: 和文はスペースなし)
+% ------------------------------------------------------------------------------
+\DeclareNameFormat{family-given}{%
+  \usebibmacro{name:delim}{#1}%
+  \usebibmacro{name:hook}{#1}%
+  \iftoggle{isjapanese}%
+    {\namepartfamily\namepartgiven}%
+    {\ifuseprefix
+       {\ifdefvoid{\namepartprefix}{}{\namepartprefix\addspace}%
+        \namepartfamily
+        \ifdefvoid{\namepartsuffix}{}{\addcomma\space\namepartsuffix}%
+        \ifdefvoid{\namepartgiven}{}{\addcomma\space\namepartgiven}}
+       {\namepartfamily
+        \ifdefvoid{\namepartsuffix}{}{\addcomma\space\namepartsuffix}%
+        \ifdefvoid{\namepartgiven}{}{\addcomma\space\namepartgiven}%
+        \ifdefvoid{\namepartprefix}{}{\addspace\namepartprefix}}}%
+  \usebibmacro{name:andothers}%
+}
+
+\DeclareNameAlias{author}{family-given}
+\DeclareNameAlias{editor}{family-given}
+\DeclareNameAlias{translator}{family-given}
+
+% ------------------------------------------------------------------------------
+% 5. フィールドフォーマットの再定義
+% ------------------------------------------------------------------------------
+\DeclareFieldFormat{title}{#1}
+\DeclareFieldFormat[article,book,patent,thesis,report,unpublished,misc,video]{title}{#1}
+\DeclareFieldFormat[inbook,incollection,inproceedings,online,legislation]{title}{``#1''}
+
+\DeclareFieldFormat{booktitle}{#1}
+\DeclareFieldFormat{journaltitle}{#1}
+\DeclareFieldFormat{maintitle}{#1}
+
+% ★ 修正: volume / number のプレフィックスを article 等に対しても強制適用
+\DeclareFieldFormat{volume}{vol\adddot\space#1}
+\DeclareFieldFormat[article,periodical]{volume}{vol\adddot\space#1}
+\DeclareFieldFormat{number}{no\adddot\space#1}
+\DeclareFieldFormat[article,periodical]{number}{no\adddot\space#1}
+
+\DeclareFieldFormat{seriesnumber}{#1}
+\DeclareFieldFormat{pages}{p\adddot\space#1}
+\DeclareFieldFormat{pagetotal}{#1p\adddot}
+\DeclareFieldFormat{isbn}{ISBN\space#1}
+\DeclareFieldFormat{issn}{ISSN\space#1}
+\DeclareFieldFormat{url}{\url{#1}}
+
+% ★ 修正: urldate のフォーマット (二重カッコ防止)
+\DeclareFieldFormat{urldate}{%
+  \iftoggle{isjapanese}%
+    {\mkbibparens{参照\space#1}}%
+    {\mkbibparens{accessed\space#1}}%
+}
+
+\DeclareFieldFormat{edition}{%
+  \ifstrequal{#1}{1}%
+    {}%
+    {\iftoggle{isjapanese}%
+       {第#1版}%
+       {\ifinteger{#1}{\mkbibordinal{#1}\space ed\adddot}{#1\space ed\adddot}}}%
+}
+
+\DeclareFieldFormat[thesis]{type}{%
+  \iftoggle{isjapanese}%
+    {\ifboolexpr{ test {\iffieldequalstr{type}{phdthesis}} }
+       {博士論文}
+       {\ifboolexpr{ test {\iffieldequalstr{type}{mathesis}} }
+          {修士論文}
+          {#1}}}%
+    {\ifboolexpr{ test {\iffieldequalstr{type}{phdthesis}} }
+       {Ph.D. thesis}
+       {\ifboolexpr{ test {\iffieldequalstr{type}{mathesis}} }
+          {Master's thesis}
+          {#1}}}%
+}
+
+% ------------------------------------------------------------------------------
+% 6. マクロの再定義
+% ------------------------------------------------------------------------------
+\renewbibmacro*{in:}{}
+
+\renewbibmacro*{editorstrg}{%
+  \iftoggle{isjapanese}%
+    {\printtext{編}}%
+    {\ifboolexpr{ test {\ifnumgreater{\value{editor}}{1}} or test {\ifandothers{editor}} }%
+       {\printtext{eds\adddot}}%
+       {\printtext{ed\adddot}}}%
+}
+
+\renewbibmacro*{editor}{%
+  \ifnameundef{editor}{}
+    {\printnames{editor}%
+     \iftoggle{isjapanese}%
+       {\setunit{}\usebibmacro{editorstrg}}%
+       {\setunit{\addcomma\space}\usebibmacro{editorstrg}}%
+     \clearname{editor}}}
+
+\renewbibmacro*{translatorstrg}{%
+  \iftoggle{isjapanese}%
+    {\printtext{訳}}%
+    {\printtext{trans\adddot}}%
+}
+
+\renewbibmacro*{translator}{%
+  \ifnameundef{translator}{}
+    {\printnames{translator}%
+     \iftoggle{isjapanese}%
+       {\setunit{}\usebibmacro{translatorstrg}}%
+       {\setunit{\addcomma\space}\usebibmacro{translatorstrg}}%
+     \clearname{translator}}}
+
+\renewbibmacro*{journal+issuetitle}{%
+  \usebibmacro{journal}%
+  \setunit*{\addperiod\space}%
+  \iffieldundef{year}{}{\printfield{year}\setunit*{\addcomma\space}}%
+  \iffieldundef{volume}{}{\printfield{volume}\setunit*{\addcomma\space}}%
+  \iffieldundef{number}{}{\printfield{number}\setunit*{\addcomma\space}}%
+}
+
+\renewbibmacro*{publisher+location+date}{%
+  \printlist{location}%
+  \setunit*{\addcomma\space}%
+  \printlist{publisher}%
+  \setunit*{\addcomma\space}%
+  \printfield{year}%
+}
+
+\renewbibmacro*{event+venue+date}{%
+  \printfield{venue}%
+  \setunit*{\addcomma\space}%
+  \printeventdate%
+  \setunit*{\addcomma\space}%
+  \printlist{organization}%
+}
+
+\renewbibmacro*{author}{%
+  \ifnameundef{author}{}
+    {\printnames{author}%
+     \clearname{author}}}
+
+\renewbibmacro*{series+number}{%
+  \iffieldundef{series}{}
+    {\printtext[parens]{%
+       \printfield{series}%
+       \setunit*{\addcomma\space}%
+       \printfield[seriesnumber]{number}%
+     }}}
+
+% ★ 修正: urldate は日付フィールドとして直接 \printurldate を呼び出す (\printtext[urldate] を削除)
+\renewbibmacro*{url+urldate}{%
+  \iffieldundef{url}{}{%
+    \printfield{url}%
+    \iffieldundef{urlyear}
+      {}
+      {\setunit*{\addcomma\space}%
+       \printurldate}% ★ ここで二重カッコ問題が解消されます
+  }%
+}
+
+% ------------------------------------------------------------------------------
+% 7. ドライバの定義 (追加: video, misc 含む全てのエントリタイプに対応)
+% ------------------------------------------------------------------------------
+
+\DeclareBibliographyDriver{article}{%
+  \usebibmacro{bibindex}%
+  \usebibmacro{begentry}%
+  \usebibmacro{author}%
+  \setunit{\labelnamepunct}\newblock
+  \usebibmacro{title}%
+  \setunit{\addperiod\space}\newblock
+  \usebibmacro{journal+issuetitle}%
+  \printfield{pages}%
+  \setunit*{\addcomma\space}%
+  \printfield{issn}%
+  \newunit\newblock
+  \printfield{note}%
+  \newunit\newblock
+  \usebibmacro{url+urldate}%
+  \newunit\newblock
+  \usebibmacro{finentry}}
+
+\DeclareBibliographyDriver{book}{%
+  \usebibmacro{bibindex}%
+  \usebibmacro{begentry}%
+  \ifnameundef{author}
+    {\usebibmacro{editor}}
+    {\usebibmacro{author}}%
+  \setunit{\labelnamepunct}\newblock
+  \usebibmacro{title}%
+  \setunit{\addperiod\space}\newblock
+  \printfield{edition}%
+  \setunit*{\addcomma\space}%
+  \usebibmacro{publisher+location+date}%
+  \setunit*{\addcomma\space}%
+  \printfield{pagetotal}%
+  \setunit*{\addcomma\space}%
+  \usebibmacro{series+number}%
+  \setunit*{\addcomma\space}%
+  \printfield{isbn}%
+  \newunit\newblock
+  \usebibmacro{url+urldate}%
+  \newunit\newblock
+  \usebibmacro{finentry}}
+
+\DeclareBibliographyDriver{incollection}{%
+  \usebibmacro{bibindex}%
+  \usebibmacro{begentry}%
+  \usebibmacro{author}%
+  \setunit{\labelnamepunct}\newblock
+  \usebibmacro{title}%
+  \setunit{\addperiod\space}\newblock
+  \printfield{booktitle}%
+  \setunit{\addperiod\space}%
+  \usebibmacro{editor}%
+  \setunit{\addperiod\space}\newblock
+  \printfield{edition}%
+  \setunit*{\addcomma\space}%
+  \usebibmacro{publisher+location+date}%
+  \setunit*{\addcomma\space}%
+  \printfield{pages}%
+  \setunit*{\addcomma\space}%
+  \usebibmacro{series+number}%
+  \setunit*{\addcomma\space}%
+  \printfield{isbn}%
+  \newunit\newblock
+  \usebibmacro{url+urldate}%
+  \newunit\newblock
+  \usebibmacro{finentry}}
+
+\DeclareBibliographyDriver{inproceedings}{%
+  \usebibmacro{bibindex}%
+  \usebibmacro{begentry}%
+  \usebibmacro{author}%
+  \setunit{\labelnamepunct}\newblock
+  \usebibmacro{title}%
+  \setunit{\addperiod\space}\newblock
+  \printfield{booktitle}%
+  \setunit{\addperiod\space}%
+  \usebibmacro{editor}%
+  \setunit{\addperiod\space}\newblock
+  \usebibmacro{event+venue+date}%
+  \setunit{\addperiod\space}\newblock
+  \usebibmacro{publisher+location+date}%
+  \setunit*{\addcomma\space}%
+  \printfield{pages}%
+  \setunit*{\addcomma\space}%
+  \printfield{isbn}%
+  \newunit\newblock
+  \usebibmacro{url+urldate}%
+  \newunit\newblock
+  \usebibmacro{finentry}}
+
+\DeclareBibliographyDriver{online}{%
+  \usebibmacro{bibindex}%
+  \usebibmacro{begentry}%
+  \usebibmacro{author}%
+  \setunit{\labelnamepunct}\newblock
+  \usebibmacro{title}%
+  \setunit{\addperiod\space}\newblock
+  \printfield{organization}%
+  \setunit{\addperiod\space}\newblock
+  \printdate%
+  \setunit{\addperiod\space}\newblock
+  \usebibmacro{url+urldate}%
+  \newunit\newblock
+  \printfield{note}%
+  \usebibmacro{finentry}}
+
+\DeclareBibliographyDriver{legislation}{%
+  \usebibmacro{bibindex}%
+  \usebibmacro{begentry}%
+  \usebibmacro{title}%
+  \setunit{\addperiod\space}\newblock
+  \printfield{number}%
+  \setunit{\addperiod\space}\newblock
+  \usebibmacro{url+urldate}%
+  \newunit\newblock
+  \usebibmacro{finentry}}
+
+\DeclareBibliographyDriver{report}{%
+  \usebibmacro{bibindex}%
+  \usebibmacro{begentry}%
+  \usebibmacro{author}%
+  \setunit{\labelnamepunct}\newblock
+  \usebibmacro{title}%
+  \setunit{\addperiod\space}\newblock
+  \usebibmacro{publisher+location+date}%
+  \setunit{\addcomma\space}%
+  \printfield{type}%
+  \setunit*{\addspace}%
+  \printfield{number}%
+  \setunit{\addcomma\space}%
+  \printfield{pagetotal}%
+  \newunit\newblock
+  \usebibmacro{url+urldate}%
+  \newunit\newblock
+  \usebibmacro{finentry}}
+
+\DeclareBibliographyDriver{patent}{%
+  \usebibmacro{bibindex}%
+  \usebibmacro{begentry}%
+  \usebibmacro{author}%
+  \setunit{\labelnamepunct}\newblock
+  \usebibmacro{title}%
+  \setunit{\addperiod\space}\newblock
+  \printfield{number}%
+  \setunit{\addperiod\space}%
+  \printdate%
+  \newunit\newblock
+  \usebibmacro{url+urldate}%
+  \newunit\newblock
+  \usebibmacro{finentry}}
+
+\DeclareBibliographyDriver{thesis}{%
+  \usebibmacro{bibindex}%
+  \usebibmacro{begentry}%
+  \usebibmacro{author}%
+  \setunit{\labelnamepunct}\newblock
+  \usebibmacro{title}%
+  \setunit{\addperiod\space}\newblock
+  \printlist{location}%
+  \setunit{\addcomma\space}%
+  \printlist{institution}%
+  \setunit{\addcomma\space}%
+  \printdate%
+  \setunit{\addcomma\space}%
+  \printfield{pagetotal}%
+  \setunit{\addcomma\space}%
+  \printfield{type}%
+  \newunit\newblock
+  \usebibmacro{url+urldate}%
+  \newunit\newblock
+  \usebibmacro{finentry}}
+
+% ★ 新規追加: video 用ドライバ (namea のフォールバックに対応)
+\DeclareBibliographyDriver{video}{%
+  \usebibmacro{bibindex}%
+  \usebibmacro{begentry}%
+  \ifnameundef{author}
+    {\ifnameundef{namea}
+       {\ifnameundef{editor}
+          {}
+          {\printnames{editor}\setunit{\labelnamepunct}}}
+       {\printnames{namea}\setunit{\labelnamepunct}}}
+    {\printnames{author}\setunit{\labelnamepunct}}%
+  \newblock
+  \usebibmacro{title}%
+  \setunit{\addperiod\space}\newblock
+  \printdate%
+  \setunit{\addperiod\space}\newblock
+  \usebibmacro{url+urldate}%
+  \newunit\newblock
+  \printfield{note}%
+  \newunit\newblock
+  \usebibmacro{finentry}}
+
+% ★ 新規追加: misc 用フォールバックドライバ
+\DeclareBibliographyDriver{misc}{%
+  \usebibmacro{bibindex}%
+  \usebibmacro{begentry}%
+  \ifnameundef{author}
+    {\ifnameundef{editor}
+       {}
+       {\printnames{editor}\setunit{\labelnamepunct}}}
+    {\printnames{author}\setunit{\labelnamepunct}}%
+  \newblock
+  \usebibmacro{title}%
+  \setunit{\addperiod\space}\newblock
+  \printdate%
+  \setunit{\addperiod\space}\newblock
+  \usebibmacro{url+urldate}%
+  \newunit\newblock
+  \printfield{note}%
+  \newunit\newblock
+  \usebibmacro{finentry}}
+
+% ------------------------------------------------------------------------------
+% 8. データモデル全エントリタイプのエイリアスマッピング (36種対応)
+% ------------------------------------------------------------------------------
+% [Aliases]
+\DeclareBibliographyAlias{conference}{inproceedings}
+\DeclareBibliographyAlias{electronic}{online}
+\DeclareBibliographyAlias{mastersthesis}{thesis}
+\DeclareBibliographyAlias{phdthesis}{thesis}
+\DeclareBibliographyAlias{techreport}{report}
+\DeclareBibliographyAlias{www}{online}
+
+% [Non-standard Types]
+\DeclareBibliographyAlias{artwork}{misc}
+\DeclareBibliographyAlias{audio}{misc}
+\DeclareBibliographyAlias{bibnote}{misc}
+\DeclareBibliographyAlias{commentary}{book}
+\DeclareBibliographyAlias{image}{misc}
+\DeclareBibliographyAlias{jurisdiction}{legislation}
+\DeclareBibliographyAlias{legal}{legislation}
+\DeclareBibliographyAlias{letter}{misc}
+\DeclareBibliographyAlias{movie}{video}
+\DeclareBibliographyAlias{music}{misc}
+\DeclareBibliographyAlias{performance}{misc}
+\DeclareBibliographyAlias{review}{article}
+\DeclareBibliographyAlias{standard}{report}
+
+% [Regular Types Mapping]
+\DeclareBibliographyAlias{inbook}{incollection}
+\DeclareBibliographyAlias{mvbook}{book}
+\DeclareBibliographyAlias{bookinbook}{incollection}
+\DeclareBibliographyAlias{suppbook}{incollection}
+\DeclareBibliographyAlias{booklet}{book}
+\DeclareBibliographyAlias{collection}{book}
+\DeclareBibliographyAlias{mvcollection}{book}
+\DeclareBibliographyAlias{suppcollection}{incollection}
+\DeclareBibliographyAlias{dataset}{online}
+\DeclareBibliographyAlias{manual}{report}
+\DeclareBibliographyAlias{periodical}{book}
+\DeclareBibliographyAlias{suppperiodical}{article}
+\DeclareBibliographyAlias{proceedings}{book}
+\DeclareBibliographyAlias{mvproceedings}{book}
+\DeclareBibliographyAlias{reference}{book}
+\DeclareBibliographyAlias{mvreference}{book}
+\DeclareBibliographyAlias{inreference}{incollection}
+\DeclareBibliographyAlias{set}{misc}
+\DeclareBibliographyAlias{software}{online}
+\DeclareBibliographyAlias{unpublished}{misc}
+\DeclareBibliographyAlias{xdata}{misc}
+\DeclareBibliographyAlias{customa}{misc}
+\DeclareBibliographyAlias{customb}{misc}
+\DeclareBibliographyAlias{customc}{misc}
+\DeclareBibliographyAlias{customd}{misc}
+\DeclareBibliographyAlias{custome}{misc}
+\DeclareBibliographyAlias{customf}{misc}
+
+\endinput

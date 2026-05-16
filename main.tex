@@ -1,0 +1,92 @@
+\documentclass[
+  article,paper=a4paper,fontsize=10pt,jlreq_notes,
+  head_space=30truemm,foot_space=28truemm,gutter=24truemm,fore-edge=24truemm
+]{jlreq}
+
+% フォント関係
+\usepackage{luatexja-fontspec}
+\setmainfont{Harano Aji Mincho}
+\setsansfont{Harano Aji Gothic}
+\setmainjfont{Harano Aji Mincho}
+\setsansjfont{Harano Aji Gothic}
+
+% 見出し関係
+\ModifyHeading{section}{before_space=25pt,after_space=20pt}
+\ModifyHeading{subsection}{before_space=20pt,after_space=15pt}
+\ModifyHeading{subsubsection}{before_space=15pt,after_space=10pt}
+\SetBlockHeadingSpaces{
+  {_section{before_space=25pt},_subsection{before_space=20pt},_subsubsection{before_space=15pt,after_space=10pt}}
+  {_section{before_space=25pt},_subsection{before_space=20pt,after_space=15pt}}
+  {_subsection{before_space=20pt},_subsubsection{before_space=15pt,after_space=10pt}}
+}
+
+% 基本命令関係
+\renewcommand{\emph}[1]{\textbf{\textsf{\textgt{#1}}}}  % 欧文でも強調はゴシック・太字にする
+
+% 文字関係
+\usepackage{newunicodechar}
+%\newunicodechar{、}{，}
+%\newunicodechar{。}{．}
+
+% 画像挿入関係
+\usepackage{graphicx}
+\usepackage{here}
+\usepackage{wrapfig}
+\setlength{\abovecaptionskip}{4pt}
+\setlength{\belowcaptionskip}{4pt}
+\graphicspath{{figures/}}
+
+% リスト関係
+%\usepackage{enumitem}
+
+% 数式関係
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{unicode-math}
+\setmathfont{LatinModernMath-Regular}
+
+\everymath{\displaystyle}
+
+\theoremstyle{definition}
+\newtheorem{theorem}{定理}
+\newtheorem{lemma}{補題}
+\newtheorem{corollary}{系}
+\newtheorem*{proof*}{証明}
+\newtheorem{assumption}{仮定}
+\newtheorem{definition}{定義}
+\newtheorem{remark}{注意}
+\newtheorem{proposition}{命題}
+
+\usepackage[per-mode=symbol]{siunitx}
+
+% ルビ関係
+\usepackage{pxrubrica}
+\rubysetup{(-)}
+
+% 参照関係
+\usepackage[hyphens]{url}
+\usepackage[hidelinks]{hyperref}
+
+% タイトル関係
+\newcommand{\subtitle}[1]{\\{---{\large #1}---}}
+\newcommand{\puttitle}[1]{{\LARGE\noindent #1}\vspace{1.2\baselineskip}}
+\newcommand{\puttitles}[2]{{\LARGE\noindent #1}\par\vspace{0.3\baselineskip}{\large\noindent #2}\vspace{1.2\baselineskip}}
+
+% 参考文献関係
+\usepackage[backend=biber,style=sist02]{biblatex}
+\bibliography{references}
+
+\pagestyle{empty}
+
+\title{sist02 実行結果}
+\author{\empty}
+\date{\empty}
+
+\begin{document}
+
+\maketitle
+
+書籍の章\cite{著2026見出し}
+
+\printbibliography[title=参考文献]
+
+\end{document}
