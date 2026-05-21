@@ -1,4 +1,4 @@
-\ProvidesFile{sist02.bbx}[2026/05/16 v8.0 biblatex bibliography style for SIST02 (Final Strict)]
+\ProvidesFile{sist02.bbx}[2026/05/16 v9.0 biblatex bibliography style for SIST02 (Final Strict)]
 
 % ==============================================================================
 % SIST 02 準拠 biblatex スタイルファイル (Bibliography Style)
@@ -103,7 +103,7 @@
 \DeclareFieldFormat{journaltitle}{#1}
 \DeclareFieldFormat{maintitle}{#1}
 
-% ★ 修正: volume / number のプレフィックスを article 等に対しても強制適用
+% volume / number のプレフィックスを article 等に対しても強制適用
 \DeclareFieldFormat{volume}{vol\adddot\space#1}
 \DeclareFieldFormat[article,periodical]{volume}{vol\adddot\space#1}
 \DeclareFieldFormat{number}{no\adddot\space#1}
@@ -116,7 +116,7 @@
 \DeclareFieldFormat{issn}{ISSN\space#1}
 \DeclareFieldFormat{url}{\url{#1}}
 
-% ★ 修正: urldate のフォーマット (二重カッコ防止)
+% urldate のフォーマット (二重カッコ防止)
 \DeclareFieldFormat{urldate}{%
   \iftoggle{isjapanese}%
     {\mkbibparens{参照\space#1}}%
@@ -217,14 +217,24 @@
        \printfield[seriesnumber]{number}%
      }}}
 
-% ★ 修正: urldate は日付フィールドとして直接 \printurldate を呼び出す (\printtext[urldate] を削除)
+% Webサイト等のオンライン資料（@online, @misc）用
+\renewbibmacro*{organization+location+date}{%
+  \printlist{location}%
+  \iflistundef{organization}
+    {}
+    {\printlist{organization}\setunit*{\addperiod\space}}% ウェブサイト名（organization）を出力し、ピリオドで区切る
+  \usebibmacro{date}%
+  \renewcommand*{\newunitpunct}{\addcomma\space}% これ以降の区切り（URLや参照日）をすべてコンマにする
+  \newunit}
+
+% urldate は日付フィールドとして直接 \printurldate を呼び出す (\printtext[urldate] を削除)
 \renewbibmacro*{url+urldate}{%
   \iffieldundef{url}{}{%
     \printfield{url}%
     \iffieldundef{urlyear}
       {}
       {\setunit*{\addcomma\space}%
-       \printurldate}% ★ ここで二重カッコ問題が解消されます
+       \printurldate}% ここで二重カッコ問題が解消されます
   }%
 }
 
@@ -328,9 +338,10 @@
   \setunit{\labelnamepunct}\newblock
   \usebibmacro{title}%
   \setunit{\addperiod\space}\newblock
-  \printfield{organization}%
+  \printlist{organization}%
   \setunit{\addperiod\space}\newblock
   \printdate%
+  \renewcommand*{\newunitpunct}{\addcomma\space}%
   \setunit{\addperiod\space}\newblock
   \usebibmacro{url+urldate}%
   \newunit\newblock
@@ -403,7 +414,7 @@
   \newunit\newblock
   \usebibmacro{finentry}}
 
-% ★ 新規追加: video 用ドライバ (namea のフォールバックに対応)
+% video 用ドライバ (namea のフォールバックに対応)
 \DeclareBibliographyDriver{video}{%
   \usebibmacro{bibindex}%
   \usebibmacro{begentry}%
@@ -425,7 +436,7 @@
   \newunit\newblock
   \usebibmacro{finentry}}
 
-% ★ 新規追加: misc 用フォールバックドライバ
+% misc 用フォールバックドライバ
 \DeclareBibliographyDriver{misc}{%
   \usebibmacro{bibindex}%
   \usebibmacro{begentry}%
