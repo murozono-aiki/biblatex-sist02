@@ -1,4 +1,4 @@
-\ProvidesFile{sist02.cbx}[2026/05/16 v4.0 biblatex citation style for SIST02 (Strict Numeric Comp)]
+\ProvidesFile{sist02.cbx}[2026/05/21 v5.0 biblatex citation style for SIST02 (Strict Numeric Comp)]
 
 % ==============================================================================
 % SIST 02 準拠 biblatex 引用スタイルファイル (Citation Style)
@@ -25,7 +25,12 @@
 % ------------------------------------------------------------------------------
 \newcommand*{\mkbibsuperbrackets}[1]{\textsuperscript{\mkbibbrackets{#1}}}
 
-\DeclareCiteCommand{\cite}[\mkbibsuperbrackets]
+% ------------------------------------------------------------------------------
+% 4. 引用記号の改行禁止と上付き [1] 化
+% ------------------------------------------------------------------------------
+\newcommand*{\mkbibsuperbracketsnobreak}[1]{\unskip\nobreak\mkbibsuperbrackets{#1}}
+
+\DeclareCiteCommand{\cite}[\mkbibsuperbracketsnobreak]
   {\usebibmacro{cite:init}%
    \usebibmacro{prenote}}
   {\usebibmacro{cite:comp}}
@@ -33,7 +38,7 @@
   {\usebibmacro{cite:dump}%
    \usebibmacro{postnote}}
 
-\DeclareCiteCommand{\parencite}[\mkbibsuperbrackets]
+\DeclareCiteCommand{\parencite}[\mkbibsuperbracketsnobreak]
   {\usebibmacro{cite:init}%
    \usebibmacro{prenote}}
   {\usebibmacro{cite:comp}}
