@@ -1,143 +1,318 @@
-\ProvidesFile{sist02.bbx}[2026/05/16 v9.0 biblatex bibliography style for SIST02 (Final Strict)]
+\ProvidesFile{sist02.bbx}[2026/11/26 v10.0 biblatex bibliography style for SIST02 (Strict Full Compliance)]
 
 % ==============================================================================
-% SIST 02 準拠 biblatex スタイルファイル (Bibliography Style)
+% SIST 02-2007 (科学技術情報流通技術基準: 参照文献の書き方) 完全記述準拠
+% biblatex 文献一覧スタイルファイル (Bibliography Style)
 % ==============================================================================
 
 \RequireBibliographyStyle{numeric}
 
 % ------------------------------------------------------------------------------
-% 1. 全般的なオプション設定
+% 1. 全般的なオプション設定および独自オプション
 % ------------------------------------------------------------------------------
 \ExecuteBibliographyOptions{
   giveninits=false,
+  useprefix=true,
   maxnames=999,
   minnames=999,
   sorting=none,
   date=iso,
   urldate=iso,
+  eventdate=iso,
+  updatedate=iso,
   seconds=true,
   isbn=true,
   doi=true,
-  eprint=false
+  eprint=true
+}
+
+% 入手日付ラベルの既定値切替オプション:
+%   urldatelabel=accessed (既定: 和文「参照」、欧文「accessed」)
+%   urldatelabel=cited    (和文「入手」、欧文「cited」)
+\newcommand*{\sist@urldatelabelopt}{accessed}
+\DeclareBibliographyOption[string]{urldatelabel}{%
+  \def\sist@urldatelabelopt{#1}%
 }
 
 % ------------------------------------------------------------------------------
-% 2. 言語判定 (和文 / 欧文) の設定
+% 2. 言語・文字種判定 (expl3 による Unicode 判定とトグル管理)
 % ------------------------------------------------------------------------------
 \newtoggle{isjapanese}
+\newcommand*{\sist@currnamewestern}{0}
+\newcommand*{\sist@prevnamewestern}{0}
+\newcommand*{\sist@listwestern}{0}
+\newtoggle{sist@printednote}
+
+\ExplSyntaxOn
+% 漢字・平仮名・踊り字（和文人名の自動判定用：カタカナのみの外国人名を除外）
+\regex_const:Nn \c_sist_kanji_hira_regex
+  { [\x{3040}-\x{309F}\x{4E00}-\x{9FFF}\x{3400}-\x{4DBF}\x{F900}-\x{FAFF}\x{3005}] }
+
+% 漢字・平仮名・片仮名（文献本文の和文/欧文判定用）
+\regex_const:Nn \c_sist_jp_any_regex
+  { [\x{3040}-\x{309F}\x{30A0}-\x{30FF}\x{4E00}-\x{9FFF}\x{3400}-\x{4DBF}\x{F900}-\x{FAFF}\x{3005}] }
+
+% 先頭が数字（オプションで空白前置）かどうか（Version 表記判定用）
+\regex_const:Nn \c_sist_digit_regex
+  { \A\s*[0-9] }
+
+% 1段階展開 (\tl_set:No) によりアクセント記号 (\"o 等) を安全に保持したまま正規表現判定
+\cs_new_protected:Npn \sist_if_jp_any:nTF #1#2#3
+  {
+    \tl_set:No \l_tmpa_tl {#1}
+    \regex_match:NVTF \c_sist_jp_any_regex \l_tmpa_tl {#2} {#3}
+  }
+
+\cs_new_protected:Npn \sist_if_kanji_hira:nTF #1#2#3
+  {
+    \tl_set:No \l_tmpa_tl {#1}
+    \regex_match:NVTF \c_sist_kanji_hira_regex \l_tmpa_tl {#2} {#3}
+  }
+
+\cs_new_protected:Npn \sist_if_starts_with_digit:nTF #1#2#3
+  {
+    \tl_set:No \l_tmpa_tl {#1}
+    \regex_match:NVTF \c_sist_digit_regex \l_tmpa_tl {#2} {#3}
+  }
+
+\cs_new_protected:Npn \sist_if_contains_str:nnTF #1#2#3#4
+  {
+    \tl_set:No \l_tmpa_tl {#1}
+    \exp_args:NV \tl_if_in:nnTF \l_tmpa_tl {#2} {#3} {#4}
+  }
+
+\cs_new_protected:Npn \sist_if_case_eq:nnTF #1#2#3#4
+  {
+    \tl_set:No \l_tmpa_tl {#1}
+    \tl_set:No \l_tmpb_tl {#2}
+    \str_if_eq:eeTF
+      { \exp_args:NV \str_lowercase:n \l_tmpa_tl }
+      { \exp_args:NV \str_lowercase:n \l_tmpb_tl }
+      {#3} {#4}
+  }
+
+\cs_new_eq:NN \sist@ifjpany \sist_if_jp_any:nTF
+\cs_new_eq:NN \sist@ifkanjihira \sist_if_kanji_hira:nTF
+\cs_new_eq:NN \sist@ifstartswithdigit \sist_if_starts_with_digit:nTF
+\cs_new_eq:NN \sist@ifcontains \sist_if_contains_str:nnTF
+\cs_new_eq:NN \sist@ifcaseeq \sist_if_case_eq:nnTF
+\ExplSyntaxOff
+
+\newcommand*{\sist@detectentrylang}{%
+  \settoggle{isjapanese}{false}%
+  \iffieldundef{langid}
+    {\def\sist@langprobe{}%
+     \iffieldundef{title}
+       {\iffieldundef{booktitle}
+          {\iffieldundef{journaltitle}
+             {\iffieldundef{maintitle}
+                {}
+                {\savefield{maintitle}{\sist@langprobe}}}
+             {\savefield{journaltitle}{\sist@langprobe}}}
+          {\savefield{booktitle}{\sist@langprobe}}}
+       {\savefield{title}{\sist@langprobe}}%
+     \ifdefempty{\sist@langprobe}
+       {\iflistundef{language}
+          {\settoggle{isjapanese}{true}}
+          {\ifboolexpr{
+             test {\iflistcontains{language}{japanese}} or
+             test {\iflistcontains{language}{Japanese}} or
+             test {\iflistcontains{language}{ja}}
+           }{\settoggle{isjapanese}{true}}{}}}
+       {\sist@ifjpany{\sist@langprobe}
+          {\settoggle{isjapanese}{true}}
+          {\settoggle{isjapanese}{false}}}}
+    {\ifboolexpr{
+       test {\iffieldequalstr{langid}{japanese}} or
+       test {\iffieldequalstr{langid}{ja}}
+     }{\settoggle{isjapanese}{true}}{}}%
+}
 
 \AtEveryBibitem{%
-  \settoggle{isjapanese}{true}%
-  \iffieldundef{langid}{%
-    \iffieldundef{language}{}{%
-      \ifboolexpr{
-        test {\iffieldequalstr{language}{english}} or
-        test {\iffieldequalstr{language}{french}} or
-        test {\iffieldequalstr{language}{german}} or
-        test {\iffieldequalstr{language}{spanish}} or
-        test {\iffieldequalstr{language}{latin}} or
-        test {\iffieldequalstr{language}{italian}} or
-        test {\iffieldequalstr{language}{dutch}} or
-        test {\iffieldequalstr{language}{portuguese}} or
-        test {\iffieldequalstr{language}{russian}}
-      }{\settoggle{isjapanese}{false}}{}%
-    }%
-  }{%
-    \ifboolexpr{
-      test {\iffieldequalstr{langid}{english}} or
-      test {\iffieldequalstr{langid}{french}} or
-      test {\iffieldequalstr{langid}{german}} or
-      test {\iffieldequalstr{langid}{spanish}} or
-      test {\iffieldequalstr{langid}{latin}} or
-      test {\iffieldequalstr{langid}{italian}} or
-      test {\iffieldequalstr{langid}{dutch}} or
-      test {\iffieldequalstr{langid}{portuguese}} or
-      test {\iffieldequalstr{langid}{russian}}
-    }{\settoggle{isjapanese}{false}}{}%
-  }%
+  \sist@detectentrylang
+  \gdef\sist@currnamewestern{0}%
+  \gdef\sist@prevnamewestern{0}%
+  \gdef\sist@listwestern{0}%
+  \togglefalse{sist@printednote}%
 }
 
 % ------------------------------------------------------------------------------
-% 3. 句読点と区切り文字の設定
+% 3. 句読点と区切り文字の設定 (SIST 02 3.3.6 表1)
 % ------------------------------------------------------------------------------
 \renewcommand*{\labelnamepunct}{\addperiod\space}
 \renewcommand*{\newunitpunct}{\addperiod\space}
+\renewcommand*{\subtitlepunct}{\addcolon\space}
+\renewcommand*{\bibdaterangesep}{-}
 
-\DeclareDelimFormat{multinamedelim}{\iftoggle{isjapanese}{\addcomma\space}{\addsemicolon\space}}
-\DeclareDelimFormat{finalnamedelim}{\iftoggle{isjapanese}{\addcomma\space}{\addsemicolon\space}}
-\DeclareDelimFormat{andothersdelim}{\addspace}
+\DeclareDelimFormat{multinamedelim}{%
+  \ifboolexpr{
+    not togl {isjapanese} or
+    test {\ifdefstring{\sist@prevnamewestern}{1}} or
+    test {\ifdefstring{\sist@currnamewestern}{1}}
+  }{\printtext{;\space}}{\printtext{,\space}}%
+}
+\DeclareDelimFormat{finalnamedelim}{%
+  \ifboolexpr{
+    not togl {isjapanese} or
+    test {\ifdefstring{\sist@prevnamewestern}{1}} or
+    test {\ifdefstring{\sist@currnamewestern}{1}}
+  }{\printtext{;\space}}{\printtext{,\space}}%
+}
+\DeclareDelimFormat{andothersdelim}{}
 
 % ------------------------------------------------------------------------------
-% 4. 著者名のフォーマット (SIST02 4.1.1 準拠: 和文はスペースなし)
+% 4. 著者・編者・訳者名のフォーマット (SIST 02 4.1.1, 4.1.2, 4.1.4)
 % ------------------------------------------------------------------------------
+% 各人名ごとに:
+%   1) Biber アノテーション (author+an = {1=western; 2=japanese; 3=literal})
+%   2) エントリ単位指定 (authorstyle = {japanese|western})
+%   3) given が空の場合は単一名/団体名/ハンドル名としてコンマ無し出力
+%   4) 自動判定: 漢字または平仮名を含む -> 和文人名 (姓 名 スペース無し)
+%                 漢字・平仮名を含まない (欧文・カタカナ外国人名) -> 欧文人名 (姓, 名)
 \DeclareNameFormat{family-given}{%
+  \ifnumequal{\value{listcount}}{1}
+    {\gdef\sist@prevnamewestern{0}%
+     \gdef\sist@listwestern{0}}
+    {\ifdefstring{\sist@currnamewestern}{1}
+       {\gdef\sist@prevnamewestern{1}}
+       {\gdef\sist@prevnamewestern{0}}}%
+  \gdef\sist@currnamewestern{0}%
+  \def\sist@namemode{auto}%
+  \ifitemannotation{japanese}{\def\sist@namemode{japanese}}{}%
+  \ifitemannotation{western}{\def\sist@namemode{western}}{}%
+  \ifitemannotation{foreign}{\def\sist@namemode{western}}{}%
+  \ifitemannotation{katakana}{\def\sist@namemode{western}}{}%
+  \ifitemannotation{literal}{\def\sist@namemode{literal}}{}%
+  \ifdefstring{\sist@namemode}{auto}
+    {\iffieldequalstr{authorstyle}{japanese}
+       {\def\sist@namemode{japanese}}
+       {\iffieldequalstr{authorstyle}{western}
+          {\def\sist@namemode{western}}
+          {}}}
+    {}%
+  \ifdefstring{\sist@namemode}{auto}
+    {\ifdefvoid{\namepartgiven}
+       {\def\sist@namemode{literal}}
+       {\ifdefvoid{\namepartfamily}
+          {\def\sist@namemode{literal}}
+          {\sist@ifkanjihira{\namepartfamily}
+             {\def\sist@namemode{japanese}}
+             {\sist@ifkanjihira{\namepartgiven}
+                {\def\sist@namemode{japanese}}
+                {\def\sist@namemode{western}}}}}}
+    {}%
+  \ifdefstring{\sist@namemode}{western}
+    {\gdef\sist@currnamewestern{1}%
+     \gdef\sist@listwestern{1}}
+    {}%
   \usebibmacro{name:delim}{#1}%
   \usebibmacro{name:hook}{#1}%
-  \iftoggle{isjapanese}%
-    {\namepartfamily\namepartgiven}%
-    {\ifuseprefix
-       {\ifdefvoid{\namepartprefix}{}{\namepartprefix\addspace}%
-        \namepartfamily
-        \ifdefvoid{\namepartsuffix}{}{\addcomma\space\namepartsuffix}%
-        \ifdefvoid{\namepartgiven}{}{\addcomma\space\namepartgiven}}
-       {\namepartfamily
-        \ifdefvoid{\namepartsuffix}{}{\addcomma\space\namepartsuffix}%
-        \ifdefvoid{\namepartgiven}{}{\addcomma\space\namepartgiven}%
-        \ifdefvoid{\namepartprefix}{}{\addspace\namepartprefix}}}%
+  \ifdefstring{\sist@namemode}{literal}
+    {\ifdefvoid{\namepartprefix}{}{\namepartprefix\addspace}%
+     \namepartfamily
+     \ifdefvoid{\namepartsuffix}{}{\addcomma\space\namepartsuffix}%
+     \ifdefvoid{\namepartgiven}{}{\addspace\namepartgiven}}
+    {\ifdefstring{\sist@namemode}{japanese}
+       {\namepartfamily\namepartgiven
+        \ifdefvoid{\namepartsuffix}{}{\addspace\namepartsuffix}}
+       {\ifuseprefix
+          {\ifdefvoid{\namepartprefix}{}{\namepartprefix\addspace}%
+           \namepartfamily
+           \ifdefvoid{\namepartsuffix}{}{\addcomma\space\namepartsuffix}%
+           \ifdefvoid{\namepartgiven}{}{\addcomma\space\namepartgiven}}
+          {\namepartfamily
+           \ifdefvoid{\namepartsuffix}{}{\addcomma\space\namepartsuffix}%
+           \ifdefvoid{\namepartgiven}{}{\addcomma\space\namepartgiven}%
+           \ifdefvoid{\namepartprefix}{}{\addspace\namepartprefix}}}}%
   \usebibmacro{name:andothers}%
 }
 
 \DeclareNameAlias{author}{family-given}
 \DeclareNameAlias{editor}{family-given}
 \DeclareNameAlias{translator}{family-given}
+\DeclareNameAlias{holder}{family-given}
+\DeclareNameAlias{bookauthor}{family-given}
+\DeclareNameAlias{namea}{family-given}
+
+\renewbibmacro*{name:andothers}{%
+  \ifboolexpr{
+    test {\ifnumequal{\value{listcount}}{\value{liststop}}}
+    and
+    test \ifmorenames
+  }
+    {\ifboolexpr{
+       togl {isjapanese} and not test {\ifdefstring{\sist@currnamewestern}{1}}
+     }
+       {\printtext{ほか}}
+       {\addspace\printtext{et\addspace al\adddot}}}
+    {}%
+}
 
 % ------------------------------------------------------------------------------
 % 5. フィールドフォーマットの再定義
 % ------------------------------------------------------------------------------
 \DeclareFieldFormat{title}{#1}
-\DeclareFieldFormat[article,book,patent,thesis,report,unpublished,misc,video]{title}{#1}
-\DeclareFieldFormat[inbook,incollection,inproceedings,online,legislation]{title}{``#1''}
+\DeclareFieldFormat{sistquotedtitle}{``#1''\@}
+\DeclareFieldFormat[article,book,mvbook,collection,mvcollection,proceedings,mvproceedings,periodical,reference,mvreference,booklet,thesis,patent,standard,unpublished,video,audio,artwork,misc,legislation,dataset,software]{title}{#1}
+\DeclareFieldFormat[inbook,bookinbook,suppbook,incollection,suppcollection,inreference,inproceedings,conference,online,letter]{title}{``#1''\@}
 
+\DeclareFieldFormat{issuetitle}{#1}
+\DeclareFieldFormat{subtitle}{#1}
 \DeclareFieldFormat{booktitle}{#1}
+\DeclareFieldFormat{booksubtitle}{#1}
 \DeclareFieldFormat{journaltitle}{#1}
+\DeclareFieldFormat{journalsubtitle}{#1}
 \DeclareFieldFormat{maintitle}{#1}
+\DeclareFieldFormat{mainsubtitle}{#1}
+\DeclareFieldFormat{eventtitle}{#1}
+\DeclareFieldFormat{venue}{#1}
 
-% volume / number のプレフィックスを article 等に対しても強制適用
+% 巻・号・分冊・特集号・ページ
 \DeclareFieldFormat{volume}{vol\adddot\space#1}
-\DeclareFieldFormat[article,periodical]{volume}{vol\adddot\space#1}
-\DeclareFieldFormat{number}{no\adddot\space#1}
-\DeclareFieldFormat[article,periodical]{number}{no\adddot\space#1}
-
+\DeclareFieldFormat[article,periodical,suppperiodical]{volume}{vol\adddot\space#1}
+\DeclareFieldFormat{number}{#1}
+\DeclareFieldFormat[article,periodical,suppperiodical]{number}{no\adddot\space#1}
+\DeclareFieldFormat{articlenumber}{no\adddot\space#1}
 \DeclareFieldFormat{seriesnumber}{#1}
-\DeclareFieldFormat{pages}{p\adddot\space#1}
+\DeclareFieldFormat{part}{\ifinteger{#1}{pt\adddot\space#1}{#1}}
+\DeclareFieldFormat{issue}{#1}
+\DeclareFieldFormat{pages}{{\def\bibrangedash{-}p\adddot\space#1}}
 \DeclareFieldFormat{pagetotal}{#1p\adddot}
+\DeclareFieldFormat{volumes}{%
+  \iftoggle{isjapanese}{#1冊}{#1\space vols\adddot}%
+}
+\DeclareFieldFormat{eid}{#1}
+
+% 識別子・URL・入手日付
+\DeclareFieldFormat{doi}{doi\addcolon\nolinkurl{#1}}
 \DeclareFieldFormat{isbn}{ISBN\space#1}
 \DeclareFieldFormat{issn}{ISSN\space#1}
+\DeclareFieldFormat{isrn}{#1}
 \DeclareFieldFormat{url}{\url{#1}}
 
-% urldate のフォーマット (二重カッコ防止)
-\DeclareFieldFormat{urldate}{%
-  \iftoggle{isjapanese}%
-    {\mkbibparens{参照\space#1}}%
-    {\mkbibparens{accessed\space#1}}%
+\DeclareFieldFormat{edition}{%
+  \iffieldequalstr{editionliteral}{true}
+    {#1}
+    {\ifstrequal{#1}{1}
+       {}
+       {\ifinteger{#1}
+          {\iftoggle{isjapanese}{第#1版}{\mkbibordinal{#1}\space ed\adddot}}
+          {#1}}}%
 }
 
-\DeclareFieldFormat{edition}{%
-  \ifstrequal{#1}{1}%
-    {}%
-    {\iftoggle{isjapanese}%
-       {第#1版}%
-       {\ifinteger{#1}{\mkbibordinal{#1}\space ed\adddot}{#1\space ed\adddot}}}%
+\DeclareFieldFormat{version}{%
+  \sist@ifstartswithdigit{#1}{Version\space#1}{#1}%
 }
+
+\DeclareFieldFormat{commit}{commit\space#1}
 
 \DeclareFieldFormat[thesis]{type}{%
-  \iftoggle{isjapanese}%
+  \iftoggle{isjapanese}
     {\ifboolexpr{ test {\iffieldequalstr{type}{phdthesis}} }
        {博士論文}
        {\ifboolexpr{ test {\iffieldequalstr{type}{mathesis}} }
           {修士論文}
-          {#1}}}%
+          {#1}}}
     {\ifboolexpr{ test {\iffieldequalstr{type}{phdthesis}} }
        {Ph.D. thesis}
        {\ifboolexpr{ test {\iffieldequalstr{type}{mathesis}} }
@@ -146,46 +321,198 @@
 }
 
 % ------------------------------------------------------------------------------
-% 6. マクロの再定義
+% 6. マクロの再定義 (SIST 02 各書誌要素)
 % ------------------------------------------------------------------------------
 \renewbibmacro*{in:}{}
 
+% 標題 + 副標題 (SIST 02 4.2.1, 4.2.3: コロン区切り)
+\renewbibmacro*{title}{%
+  \ifboolexpr{
+    test {\iffieldundef{title}}
+    and
+    test {\iffieldundef{subtitle}}
+    and
+    test {\iffieldundef{issuetitle}}
+  }
+    {}
+    {\iffieldundef{issuetitle}
+       {}
+       {\printfield{issuetitle}\setunit{\addcolon\space}}%
+     \printtext[title]{%
+       \printfield[titlecase]{title}%
+       \setunit{\subtitlepunct}%
+       \printfield[titlecase]{subtitle}}%
+     \newunit}%
+}
+
+% レポート中1論文・データベース一部・ソースファイル用の引用符付き標題マクロ
+\newbibmacro*{sist:quotedtitle}{%
+  \ifboolexpr{
+    test {\iffieldundef{title}}
+    and
+    test {\iffieldundef{subtitle}}
+  }
+    {}
+    {\printtext[sistquotedtitle]{%
+       \printfield[titlecase]{title}%
+       \setunit{\subtitlepunct}%
+       \printfield[titlecase]{subtitle}}%
+     \newunit}%
+}
+
+\newbibmacro*{sist:booktitle}{%
+  \ifboolexpr{
+    test {\iffieldundef{booktitle}}
+    and
+    test {\iffieldundef{booksubtitle}}
+  }
+    {}
+    {\printfield{booktitle}%
+     \setunit{\subtitlepunct}%
+     \printfield{booksubtitle}}%
+}
+
+\renewbibmacro*{journal}{%
+  \ifboolexpr{
+    test {\iffieldundef{journaltitle}}
+    and
+    test {\iffieldundef{journalsubtitle}}
+  }
+    {}
+    {\printfield{journaltitle}%
+     \setunit{\addcomma\space}%
+     \printfield{journalsubtitle}}%
+}
+
+% 編者・翻訳者・特許出願人 (SIST 02 4.1.4, 4.1.5)
 \renewbibmacro*{editorstrg}{%
-  \iftoggle{isjapanese}%
+  \ifboolexpr{ not togl {isjapanese} or test {\ifdefstring{\sist@listwestern}{1}} }
+    {\ifboolexpr{ test {\ifnumgreater{\value{editor}}{1}} or test {\ifandothers{editor}} }
+       {\printtext{eds\adddot}}
+       {\printtext{ed\adddot}}}
     {\printtext{編}}%
-    {\ifboolexpr{ test {\ifnumgreater{\value{editor}}{1}} or test {\ifandothers{editor}} }%
-       {\printtext{eds\adddot}}%
-       {\printtext{ed\adddot}}}%
 }
 
 \renewbibmacro*{editor}{%
-  \ifnameundef{editor}{}
-    {\printnames{editor}%
-     \iftoggle{isjapanese}%
+  \ifnameundef{editor}
+    {}
+    {\gdef\sist@listwestern{0}%
+     \printnames{editor}%
+     \ifboolexpr{ not togl {isjapanese} or test {\ifdefstring{\sist@listwestern}{1}} }
+       {\setunit{\addcomma\space}\usebibmacro{editorstrg}}
        {\setunit{}\usebibmacro{editorstrg}}%
-       {\setunit{\addcomma\space}\usebibmacro{editorstrg}}%
-     \clearname{editor}}}
+     \clearname{editor}}%
+}
 
 \renewbibmacro*{translatorstrg}{%
-  \iftoggle{isjapanese}%
+  \ifboolexpr{ not togl {isjapanese} or test {\ifdefstring{\sist@listwestern}{1}} }
+    {\printtext{trans\adddot}}
     {\printtext{訳}}%
-    {\printtext{trans\adddot}}%
 }
 
 \renewbibmacro*{translator}{%
-  \ifnameundef{translator}{}
-    {\printnames{translator}%
-     \iftoggle{isjapanese}%
+  \ifnameundef{translator}
+    {}
+    {\gdef\sist@listwestern{0}%
+     \printnames{translator}%
+     \ifboolexpr{ not togl {isjapanese} or test {\ifdefstring{\sist@listwestern}{1}} }
+       {\setunit{\addcomma\space}\usebibmacro{translatorstrg}}
        {\setunit{}\usebibmacro{translatorstrg}}%
-       {\setunit{\addcomma\space}\usebibmacro{translatorstrg}}%
-     \clearname{translator}}}
+     \clearname{translator}}%
+}
 
+% 著者名・発行年・巻号等
+\renewbibmacro*{author}{%
+  \ifnameundef{author}
+    {}
+    {\printnames{author}%
+     \clearname{author}}%
+}
+
+\newbibmacro*{sist:date}{%
+  \iffieldundef{year}
+    {}
+    {\iffieldundef{endyear}
+       {\printdate}
+       {\iffieldundef{month}
+          {\printfield{year}\bibdaterangesep\printfield{endyear}}
+          {\printdate}}}%
+}
+
+% 会議開催期間 (SIST 02 4.2.4 / 5.5: 同月なら YYYY-MM-DD/DD, 同年異月なら YYYY-MM-DD/MM-DD)
+\newbibmacro*{sist:eventdate}{%
+  \iffieldundef{eventyear}
+    {}
+    {\printfield{eventyear}%
+     \iffieldundef{eventmonth}
+       {}
+       {-\mkmonthzeros{\thefield{eventmonth}}%
+        \iffieldundef{eventday}
+          {}
+          {-\mkdayzeros{\thefield{eventday}}}}%
+     \iffieldundef{eventendyear}
+       {}
+       {\slash
+        \ifboolexpr{
+          test {\iffieldsequal{eventyear}{eventendyear}}
+        }
+          {\ifboolexpr{
+             test {\iffieldsequal{eventmonth}{eventendmonth}}
+           }
+             {\mkdayzeros{\thefield{eventendday}}}
+             {\mkmonthzeros{\thefield{eventendmonth}}%
+              \iffieldundef{eventendday}
+                {}
+                {-\mkdayzeros{\thefield{eventendday}}}}}
+          {\printfield{eventendyear}%
+           \iffieldundef{eventendmonth}
+             {}
+             {-\mkmonthzeros{\thefield{eventendmonth}}%
+              \iffieldundef{eventendday}
+                {}
+                {-\mkdayzeros{\thefield{eventendday}}}}}}}%
+}
+
+% 更新日付 (updatedate 優先、なければ date)
+\newbibmacro*{sist:updatedate}{%
+  \iffieldundef{updateyear}
+    {\usebibmacro{sist:date}}
+    {\printfield{updateyear}%
+     \iffieldundef{updatemonth}
+       {}
+       {-\mkmonthzeros{\thefield{updatemonth}}%
+        \iffieldundef{updateday}
+          {}
+          {-\mkdayzeros{\thefield{updateday}}}}}%
+}
+
+% 4.2.2 (5) 同一誌名区別用の出版地付記 + 巻号 (vol. X, no. Y)
 \renewbibmacro*{journal+issuetitle}{%
   \usebibmacro{journal}%
-  \setunit*{\addperiod\space}%
-  \iffieldundef{year}{}{\printfield{year}\setunit*{\addcomma\space}}%
-  \iffieldundef{volume}{}{\printfield{volume}\setunit*{\addcomma\space}}%
-  \iffieldundef{number}{}{\printfield{number}\setunit*{\addcomma\space}}%
+  \iflistundef{location}
+    {}
+    {\setunit{\addspace}%
+     \printtext[parens]{\printlist{location}}}%
+  \setunit{\addperiod\space}%
+  \iffieldundef{pubstate}
+    {}
+    {\ifboolexpr{
+       test {\iffieldequalstr{pubstate}{prepublished}} or
+       test {\iffieldequalstr{pubstate}{Advance Publication}} or
+       test {\iffieldequalstr{pubstate}{早期公開}}
+     }
+       {\usebibmacro{sist:pubstate}\setunit*{\addcomma\space}}
+       {}}%
+  \usebibmacro{sist:date}%
+  \setunit*{\addcomma\space}%
+  \printfield{volume}%
+  \setunit*{\addcomma\space}%
+  \printfield[articlenumber]{number}%
+  \setunit*{\addcomma\space}%
+  \printfield{part}%
+  \setunit*{\addcomma\space}%
+  \printfield{issue}%
+  \setunit*{\addcomma\space}%
 }
 
 \renewbibmacro*{publisher+location+date}{%
@@ -193,55 +520,191 @@
   \setunit*{\addcomma\space}%
   \printlist{publisher}%
   \setunit*{\addcomma\space}%
-  \printfield{year}%
+  \usebibmacro{sist:date}%
 }
 
 \renewbibmacro*{event+venue+date}{%
   \printfield{venue}%
   \setunit*{\addcomma\space}%
-  \printeventdate%
+  \usebibmacro{sist:eventdate}%
   \setunit*{\addcomma\space}%
   \printlist{organization}%
 }
 
-\renewbibmacro*{author}{%
-  \ifnameundef{author}{}
-    {\printnames{author}%
-     \clearname{author}}}
-
 \renewbibmacro*{series+number}{%
-  \iffieldundef{series}{}
+  \iffieldundef{series}
+    {}
     {\printtext[parens]{%
        \printfield{series}%
        \setunit*{\addcomma\space}%
        \printfield[seriesnumber]{number}%
-     }}}
+     }}%
+}
 
-% Webサイト等のオンライン資料（@online, @misc）用
-\renewbibmacro*{organization+location+date}{%
-  \printlist{location}%
-  \iflistundef{organization}
-    {}
-    {\printlist{organization}\setunit*{\addperiod\space}}% ウェブサイト名（organization）を出力し、ピリオドで区切る
-  \usebibmacro{date}%
-  \renewcommand*{\newunitpunct}{\addcomma\space}% これ以降の区切り（URLや参照日）をすべてコンマにする
-  \newunit}
-
-% urldate は日付フィールドとして直接 \printurldate を呼び出す (\printtext[urldate] を削除)
-\renewbibmacro*{url+urldate}{%
-  \iffieldundef{url}{}{%
-    \printfield{url}%
-    \iffieldundef{urlyear}
-      {}
-      {\setunit*{\addcomma\space}%
-       \printurldate}% ここで二重カッコ問題が解消されます
-  }%
+% 総ページ数または総冊数 (SIST 02 4.3.12 (5), (6))
+\newbibmacro*{sist:pagetotal+volumes}{%
+  \iffieldundef{pagetotal}
+    {\printfield{volumes}}
+    {\printfield{pagetotal}}%
 }
 
 % ------------------------------------------------------------------------------
-% 7. ドライバの定義 (追加: video, misc 含む全てのエントリタイプに対応)
+% 7. 注記的な書誌要素マクロ (SIST 02 4.4.1〜4.4.5)
+% ------------------------------------------------------------------------------
+% 4.4.1 言語の表示 (language / origlanguage は list 型; 原資料の言語と異なる場合のみ出力)
+\DeclareListFormat{sistoriglang}{%
+  \ifnumequal{\value{listcount}}{1}
+    {\def\sist@olang{#1}%
+     \ifboolexpr{
+       togl {isjapanese} and (
+         test {\ifdefstring{\sist@olang}{japanese}} or
+         test {\ifdefstring{\sist@olang}{Japanese}} or
+         test {\ifdefstring{\sist@olang}{ja}}
+       )
+     }
+       {}
+       {\iffieldundef{langid}
+          {\ifboolexpr{
+             not togl {isjapanese} and (
+               test {\ifdefstring{\sist@olang}{english}} or
+               test {\ifdefstring{\sist@olang}{English}} or
+               test {\ifdefstring{\sist@olang}{en}}
+             )
+           }
+             {}
+             {\printtext[parens]{#1}\toggletrue{sist@printednote}}}
+          {\savefield{langid}{\sist@lid}%
+           \sist@ifcaseeq{\sist@lid}{\sist@olang}
+             {}
+             {\printtext[parens]{#1}\toggletrue{sist@printednote}}}}}
+    {}%
+}
+
+\newbibmacro*{sist:origlang}{%
+  \iffieldundef{origlangdisplay}
+    {\iflistundef{origlanguage}
+       {\iflistundef{language}
+          {}
+          {\printlist[sistoriglang]{language}}}
+       {\printlist[sistoriglang]{origlanguage}}}
+    {\printtext[parens]{\printfield{origlangdisplay}}\toggletrue{sist@printednote}}%
+}
+
+% 4.4.2 投稿中・受理済み・印刷中・早期公開表示
+\newbibmacro*{sist:pubstate}{%
+  \iffieldundef{pubstate}
+    {}
+    {\ifboolexpr{ test {\iffieldequalstr{pubstate}{inpress}} }
+       {\iftoggle{isjapanese}{\printtext{印刷中}}{\printtext{in press}}}
+       {\ifboolexpr{ test {\iffieldequalstr{pubstate}{submitted}} }
+          {\iftoggle{isjapanese}{\printtext{投稿中}}{\printtext{submitted}}}
+          {\ifboolexpr{ test {\iffieldequalstr{pubstate}{forthcoming}} }
+             {\iftoggle{isjapanese}{\printtext{掲載予定}}{\printtext{forthcoming}}}
+             {\ifboolexpr{ test {\iffieldequalstr{pubstate}{prepublished}} }
+                {\iftoggle{isjapanese}{\printtext{早期公開}}{\printtext{Advance Publication}}}
+                {\ifboolexpr{ test {\iffieldequalstr{pubstate}{accepted}} }
+                   {\iftoggle{isjapanese}{\printtext{受理済み}}{\printtext{Accepted for publication}}}
+                   {\printfield{pubstate}}}}}}}%
+}
+
+% 4.4.3 媒体表示
+\newbibmacro*{sist:medium}{%
+  \iffieldundef{medium}
+    {}
+    {\printtext[parens]{\printfield{medium}}\toggletrue{sist@printednote}}%
+}
+
+% 4.4.5 入手日付 (accesslabel > urldatelabel option > 既定値)
+\newbibmacro*{sist:urldate}{%
+  \iffieldundef{urlyear}
+    {}
+    {\printtext[parens]{%
+       \iffieldundef{accesslabel}
+         {\ifdefstring{\sist@urldatelabelopt}{cited}
+            {\iftoggle{isjapanese}{入手}{cited}}
+            {\iftoggle{isjapanese}{参照}{accessed}}}
+         {\printfield{accesslabel}}%
+       \addspace
+       \printfield{urlyear}%
+       \iffieldundef{urlmonth}
+         {}
+         {-\mkmonthzeros{\thefield{urlmonth}}%
+          \iffieldundef{urlday}
+            {}
+            {-\mkdayzeros{\thefield{urlday}}}}}%
+     \toggletrue{sist@printednote}}%
+}
+
+% 4.4.4 入手方法（入手先機関・DB名 + URL）および入手日付
+\newbibmacro*{sist:source+url+urldate}{%
+  \iffieldundef{availablesource}
+    {}
+    {\savefield{availablesource}{\sist@srcstr}%
+     \iftoggle{isjapanese}
+       {\sist@ifcontains{\sist@srcstr}{入手先}
+          {\printfield{availablesource}}
+          {\printtext{入手先\addcomma\space}\printfield{availablesource}}}
+       {\sist@ifcontains{\sist@srcstr}{available from}
+          {\printfield{availablesource}}
+          {\sist@ifcontains{\sist@srcstr}{Available from}
+             {\printfield{availablesource}}
+             {\printtext{available from\addspace}\printfield{availablesource}}}}%
+     \toggletrue{sist@printednote}}%
+  \iffieldundef{url}
+    {}
+    {\iftoggle{sist@printednote}{\setunit{\addcomma\space}}{}%
+     \printfield{url}%
+     \toggletrue{sist@printednote}}%
+  \iffieldundef{urlyear}
+    {}
+    {\iftoggle{sist@printednote}{\setunit{\addcomma\space}}{}%
+     \usebibmacro{sist:urldate}}%
+}
+
+\renewbibmacro*{url+urldate}{%
+  \usebibmacro{sist:source+url+urldate}%
+}
+
+% 4.4.1〜4.4.5 統合注記ブロック (コンマ区切りで出力し末尾ピリオドで閉じる)
+\newbibmacro*{sist:noteelements}{%
+  \ifboolexpr{
+    not test {\iffieldundef{origlangdisplay}} or
+    not test {\iflistundef{origlanguage}} or
+    not test {\iflistundef{language}} or
+    not test {\iffieldundef{medium}} or
+    not test {\iffieldundef{availablesource}} or
+    not test {\iffieldundef{url}} or
+    not test {\iffieldundef{urlyear}} or
+    not test {\iffieldundef{note}}
+  }
+    {\setunit{\addperiod\space}\newblock
+     \togglefalse{sist@printednote}%
+     \usebibmacro{sist:origlang}%
+     \iffieldundef{medium}
+       {}
+       {\iftoggle{sist@printednote}{\setunit{\addcomma\space}}{}%
+        \usebibmacro{sist:medium}}%
+     \ifboolexpr{
+       not test {\iffieldundef{availablesource}} or
+       not test {\iffieldundef{url}} or
+       not test {\iffieldundef{urlyear}}
+     }
+       {\iftoggle{sist@printednote}{\setunit{\addcomma\space}}{}%
+        \usebibmacro{sist:source+url+urldate}}
+       {}%
+     \iffieldundef{note}
+       {}
+       {\iftoggle{sist@printednote}{\setunit{\addcomma\space}}{}%
+        \printfield{note}%
+        \toggletrue{sist@printednote}}}
+    {}%
+}
+
+% ------------------------------------------------------------------------------
+% 8. 資料種類別ドライバ定義 (SIST 02 5.1〜5.13 + BibLoom 全36タイプ対応)
 % ------------------------------------------------------------------------------
 
+% 5.1 雑誌 (5.1.1 通常, 5.1.2 特集記事, 5.9 投稿中・早期公開)
 \DeclareBibliographyDriver{article}{%
   \usebibmacro{bibindex}%
   \usebibmacro{begentry}%
@@ -250,16 +713,27 @@
   \usebibmacro{title}%
   \setunit{\addperiod\space}\newblock
   \usebibmacro{journal+issuetitle}%
-  \printfield{pages}%
+  \iffieldundef{pages}
+    {\printfield{eid}}
+    {\printfield{pages}}%
+  \setunit*{\addcomma\space}%
+  \printfield{doi}%
   \setunit*{\addcomma\space}%
   \printfield{issn}%
-  \newunit\newblock
-  \printfield{note}%
-  \newunit\newblock
-  \usebibmacro{url+urldate}%
-  \newunit\newblock
+  \iffieldundef{pubstate}
+    {}
+    {\ifboolexpr{
+       test {\iffieldequalstr{pubstate}{prepublished}} or
+       test {\iffieldequalstr{pubstate}{Advance Publication}} or
+       test {\iffieldequalstr{pubstate}{早期公開}}
+     }
+       {}
+       {\setunit{\addperiod\space}\newblock
+        \usebibmacro{sist:pubstate}}}%
+  \usebibmacro{sist:noteelements}%
   \usebibmacro{finentry}}
 
+% 5.2.1 図書１冊 (著者/編者, 訳者, 版表示, 出版地, 出版者, 出版年, 総ページ/冊数, シリーズ, ISBN)
 \DeclareBibliographyDriver{book}{%
   \usebibmacro{bibindex}%
   \usebibmacro{begentry}%
@@ -269,20 +743,23 @@
   \setunit{\labelnamepunct}\newblock
   \usebibmacro{title}%
   \setunit{\addperiod\space}\newblock
+  \usebibmacro{translator}%
+  \setunit{\addperiod\space}\newblock
   \printfield{edition}%
   \setunit*{\addcomma\space}%
   \usebibmacro{publisher+location+date}%
   \setunit*{\addcomma\space}%
-  \printfield{pagetotal}%
+  \usebibmacro{sist:pagetotal+volumes}%
   \setunit*{\addcomma\space}%
   \usebibmacro{series+number}%
   \setunit*{\addcomma\space}%
   \printfield{isbn}%
-  \newunit\newblock
-  \usebibmacro{url+urldate}%
-  \newunit\newblock
+  \setunit*{\addcomma\space}%
+  \printfield{doi}%
+  \usebibmacro{sist:noteelements}%
   \usebibmacro{finentry}}
 
+% 5.2.2 図書の１章・一部 / 5.2.3 論文集の１論文
 \DeclareBibliographyDriver{incollection}{%
   \usebibmacro{bibindex}%
   \usebibmacro{begentry}%
@@ -290,9 +767,11 @@
   \setunit{\labelnamepunct}\newblock
   \usebibmacro{title}%
   \setunit{\addperiod\space}\newblock
-  \printfield{booktitle}%
+  \usebibmacro{sist:booktitle}%
   \setunit{\addperiod\space}%
   \usebibmacro{editor}%
+  \setunit{\addperiod\space}\newblock
+  \usebibmacro{translator}%
   \setunit{\addperiod\space}\newblock
   \printfield{edition}%
   \setunit*{\addcomma\space}%
@@ -303,11 +782,35 @@
   \usebibmacro{series+number}%
   \setunit*{\addcomma\space}%
   \printfield{isbn}%
-  \newunit\newblock
-  \usebibmacro{url+urldate}%
-  \newunit\newblock
+  \setunit*{\addcomma\space}%
+  \printfield{doi}%
+  \usebibmacro{sist:noteelements}%
   \usebibmacro{finentry}}
 
+% 5.5.1 会議報告全体
+\DeclareBibliographyDriver{proceedings}{%
+  \usebibmacro{bibindex}%
+  \usebibmacro{begentry}%
+  \ifnameundef{author}{}{\usebibmacro{author}\setunit{\labelnamepunct}\newblock}%
+  \usebibmacro{title}%
+  \setunit{\addperiod\space}\newblock
+  \usebibmacro{editor}%
+  \setunit{\addperiod\space}\newblock
+  \usebibmacro{event+venue+date}%
+  \setunit{\addperiod\space}\newblock
+  \usebibmacro{publisher+location+date}%
+  \setunit*{\addcomma\space}%
+  \usebibmacro{sist:pagetotal+volumes}%
+  \setunit*{\addcomma\space}%
+  \usebibmacro{series+number}%
+  \setunit*{\addcomma\space}%
+  \printfield{isbn}%
+  \setunit*{\addcomma\space}%
+  \printfield{doi}%
+  \usebibmacro{sist:noteelements}%
+  \usebibmacro{finentry}}
+
+% 5.5.2 / 5.5.3 会議報告・予稿集・要旨集の１論文 (雑誌掲載予稿 4.2.4(3) 対応含む)
 \DeclareBibliographyDriver{inproceedings}{%
   \usebibmacro{bibindex}%
   \usebibmacro{begentry}%
@@ -315,84 +818,67 @@
   \setunit{\labelnamepunct}\newblock
   \usebibmacro{title}%
   \setunit{\addperiod\space}\newblock
-  \printfield{booktitle}%
+  \iffieldundef{booktitle}
+    {\printfield{eventtitle}}
+    {\usebibmacro{sist:booktitle}}%
   \setunit{\addperiod\space}%
   \usebibmacro{editor}%
   \setunit{\addperiod\space}\newblock
   \usebibmacro{event+venue+date}%
   \setunit{\addperiod\space}\newblock
-  \usebibmacro{publisher+location+date}%
-  \setunit*{\addcomma\space}%
-  \printfield{pages}%
-  \setunit*{\addcomma\space}%
-  \printfield{isbn}%
-  \newunit\newblock
-  \usebibmacro{url+urldate}%
-  \newunit\newblock
+  \iffieldundef{journaltitle}
+    {\usebibmacro{publisher+location+date}%
+     \setunit*{\addcomma\space}%
+     \printfield{pages}%
+     \setunit*{\addcomma\space}%
+     \usebibmacro{series+number}%
+     \setunit*{\addcomma\space}%
+     \printfield{isbn}%
+     \setunit*{\addcomma\space}%
+     \printfield{doi}}
+    {\usebibmacro{journal+issuetitle}%
+     \printfield{pages}%
+     \setunit*{\addcomma\space}%
+     \printfield{doi}}%
+  \usebibmacro{sist:noteelements}%
   \usebibmacro{finentry}}
 
-\DeclareBibliographyDriver{online}{%
-  \usebibmacro{bibindex}%
-  \usebibmacro{begentry}%
-  \usebibmacro{author}%
-  \setunit{\labelnamepunct}\newblock
-  \usebibmacro{title}%
-  \setunit{\addperiod\space}\newblock
-  \printlist{organization}%
-  \setunit{\addperiod\space}\newblock
-  \printdate%
-  \renewcommand*{\newunitpunct}{\addcomma\space}%
-  \setunit{\addperiod\space}\newblock
-  \usebibmacro{url+urldate}%
-  \newunit\newblock
-  \printfield{note}%
-  \usebibmacro{finentry}}
-
-\DeclareBibliographyDriver{legislation}{%
-  \usebibmacro{bibindex}%
-  \usebibmacro{begentry}%
-  \usebibmacro{title}%
-  \setunit{\addperiod\space}\newblock
-  \printfield{number}%
-  \setunit{\addperiod\space}\newblock
-  \usebibmacro{url+urldate}%
-  \newunit\newblock
-  \usebibmacro{finentry}}
-
+% 5.3 レポート (5.3.1 レポート１冊 / 5.3.2 レポート中の１論文: booktitle の有無で自動切替)
 \DeclareBibliographyDriver{report}{%
   \usebibmacro{bibindex}%
   \usebibmacro{begentry}%
   \usebibmacro{author}%
   \setunit{\labelnamepunct}\newblock
-  \usebibmacro{title}%
-  \setunit{\addperiod\space}\newblock
-  \usebibmacro{publisher+location+date}%
-  \setunit{\addcomma\space}%
-  \printfield{type}%
-  \setunit*{\addspace}%
-  \printfield{number}%
-  \setunit{\addcomma\space}%
-  \printfield{pagetotal}%
-  \newunit\newblock
-  \usebibmacro{url+urldate}%
-  \newunit\newblock
+  \iffieldundef{booktitle}
+    {\usebibmacro{title}%
+     \setunit{\addperiod\space}\newblock}
+    {\usebibmacro{sist:quotedtitle}%
+     \setunit{\addperiod\space}\newblock
+     \usebibmacro{sist:booktitle}%
+     \setunit{\addperiod\space}%
+     \usebibmacro{editor}%
+     \setunit{\addperiod\space}\newblock}%
+  \printlist{location}%
+  \setunit*{\addcomma\space}%
+  \iflistundef{publisher}
+    {\printlist{institution}}
+    {\printlist{publisher}}%
+  \setunit*{\addcomma\space}%
+  \usebibmacro{sist:date}%
+  \setunit*{\addcomma\space}%
+  \iffieldundef{number}
+    {\printfield{isrn}}
+    {\printfield{number}}%
+  \setunit*{\addcomma\space}%
+  \iffieldundef{booktitle}
+    {\usebibmacro{sist:pagetotal+volumes}}
+    {\printfield{pages}}%
+  \setunit*{\addcomma\space}%
+  \printfield{doi}%
+  \usebibmacro{sist:noteelements}%
   \usebibmacro{finentry}}
 
-\DeclareBibliographyDriver{patent}{%
-  \usebibmacro{bibindex}%
-  \usebibmacro{begentry}%
-  \usebibmacro{author}%
-  \setunit{\labelnamepunct}\newblock
-  \usebibmacro{title}%
-  \setunit{\addperiod\space}\newblock
-  \printfield{number}%
-  \setunit{\addperiod\space}%
-  \printdate%
-  \newunit\newblock
-  \usebibmacro{url+urldate}%
-  \newunit\newblock
-  \usebibmacro{finentry}}
-
+% 5.4 学位論文
 \DeclareBibliographyDriver{thesis}{%
   \usebibmacro{bibindex}%
   \usebibmacro{begentry}%
@@ -401,20 +887,238 @@
   \usebibmacro{title}%
   \setunit{\addperiod\space}\newblock
   \printlist{location}%
-  \setunit{\addcomma\space}%
+  \setunit*{\addcomma\space}%
   \printlist{institution}%
-  \setunit{\addcomma\space}%
-  \printdate%
-  \setunit{\addcomma\space}%
+  \setunit*{\addcomma\space}%
+  \usebibmacro{sist:date}%
+  \setunit*{\addcomma\space}%
   \printfield{pagetotal}%
-  \setunit{\addcomma\space}%
+  \setunit*{\addcomma\space}%
   \printfield{type}%
-  \newunit\newblock
-  \usebibmacro{url+urldate}%
-  \newunit\newblock
+  \setunit*{\addcomma\space}%
+  \printfield{doi}%
+  \usebibmacro{sist:noteelements}%
   \usebibmacro{finentry}}
 
-% video 用ドライバ (namea のフォールバックに対応)
+% 5.6 プレプリント (および 5.9 例3: プレプリント公開中の投稿論文)
+\DeclareBibliographyDriver{unpublished}{%
+  \usebibmacro{bibindex}%
+  \usebibmacro{begentry}%
+  \usebibmacro{author}%
+  \setunit{\labelnamepunct}\newblock
+  \usebibmacro{title}%
+  \setunit{\addperiod\space}\newblock
+  \printlist{location}%
+  \setunit*{\addcomma\space}%
+  \iflistundef{publisher}
+    {\iflistundef{organization}
+       {\iffieldundef{eprinttype}{}{\printfield{eprinttype}}}
+       {\printlist{organization}}}
+    {\printlist{publisher}}%
+  \setunit*{\addcomma\space}%
+  \usebibmacro{sist:date}%
+  \setunit*{\addcomma\space}%
+  \iffieldundef{number}
+    {\printfield{eprint}}
+    {\printfield{number}}%
+  \setunit*{\addcomma\space}%
+  \printfield{pagetotal}%
+  \setunit*{\addcomma\space}%
+  \printfield{doi}%
+  \iffieldundef{pubstate}
+    {}
+    {\setunit{\addperiod\space}\newblock
+     \usebibmacro{sist:pubstate}}%
+  \usebibmacro{sist:noteelements}%
+  \usebibmacro{finentry}}
+
+% 5.7 特許文献 (特許出願人 holder. 発明者 author. 発明の名称. 特許番号. 発行日付.)
+\DeclareBibliographyDriver{patent}{%
+  \usebibmacro{bibindex}%
+  \usebibmacro{begentry}%
+  \ifnameundef{holder}
+    {}
+    {\printnames{holder}\clearname{holder}\setunit{\labelnamepunct}\newblock}%
+  \ifnameundef{author}
+    {}
+    {\usebibmacro{author}\setunit{\labelnamepunct}\newblock}%
+  \usebibmacro{title}%
+  \setunit{\addperiod\space}\newblock
+  \iffieldundef{type}
+    {}
+    {\printfield{type}\setunit{\addspace}}%
+  \printfield{number}%
+  \setunit{\addperiod\space}\newblock
+  \usebibmacro{sist:date}%
+  \iffieldundef{pubstate}
+    {}
+    {\setunit{\addperiod\space}\newblock
+     \usebibmacro{sist:pubstate}}%
+  \usebibmacro{sist:noteelements}%
+  \usebibmacro{finentry}}
+
+% 5.8 規格文書 (規格番号：制定年. 規格標題. 出版者.)
+\DeclareBibliographyDriver{standard}{%
+  \usebibmacro{bibindex}%
+  \usebibmacro{begentry}%
+  \ifnameundef{author}
+    {}
+    {\usebibmacro{author}\setunit{\labelnamepunct}\newblock}%
+  \iffieldundef{number}
+    {}
+    {\printfield{number}%
+     \iffieldundef{year}
+       {}
+       {\savefield{number}{\sist@stdnum}%
+        \savefield{year}{\sist@stdyr}%
+        \sist@ifcontains{\sist@stdnum}{\sist@stdyr}
+          {}
+          {\setunit{}\printtext{:}\printfield{year}}}%
+     \setunit{\addperiod\space}\newblock}%
+  \usebibmacro{title}%
+  \setunit{\addperiod\space}\newblock
+  \iflistundef{publisher}
+    {\printlist{organization}}
+    {\printlist{publisher}}%
+  \usebibmacro{sist:noteelements}%
+  \usebibmacro{finentry}}
+
+% 5.10 ウェブサイト, ウェブページ, ブログ
+\DeclareBibliographyDriver{online}{%
+  \usebibmacro{bibindex}%
+  \usebibmacro{begentry}%
+  \ifnameundef{author}
+    {\ifnameundef{editor}{}{\usebibmacro{editor}}}
+    {\usebibmacro{author}}%
+  \setunit{\labelnamepunct}\newblock
+  \usebibmacro{title}%
+  \setunit{\addperiod\space}\newblock
+  \iflistundef{organization}
+    {\iflistundef{publisher}
+       {\usebibmacro{sist:booktitle}}
+       {\printlist{publisher}}}
+    {\printlist{organization}}%
+  \setunit{\addperiod\space}\newblock
+  \usebibmacro{sist:updatedate}%
+  \setunit*{\addcomma\space}%
+  \printfield{doi}%
+  \usebibmacro{sist:noteelements}%
+  \usebibmacro{finentry}}
+
+% 5.11 メーリングリスト, 電子掲示板
+\DeclareBibliographyDriver{letter}{%
+  \usebibmacro{bibindex}%
+  \usebibmacro{begentry}%
+  \usebibmacro{author}%
+  \setunit{\labelnamepunct}\newblock
+  \usebibmacro{sist:quotedtitle}%
+  \setunit{\addperiod\space}\newblock
+  \iflistundef{organization}
+    {\usebibmacro{sist:booktitle}}
+    {\printlist{organization}}%
+  \setunit{\addperiod\space}\newblock
+  \usebibmacro{sist:updatedate}%
+  \usebibmacro{sist:noteelements}%
+  \usebibmacro{finentry}}
+
+% 5.12 データベース (5.12.1 全体 / 5.12.2 一部: booktitle/maintitle 有無で切替)
+\DeclareBibliographyDriver{dataset}{%
+  \usebibmacro{bibindex}%
+  \usebibmacro{begentry}%
+  \ifnameundef{author}
+    {\ifnameundef{editor}{}{\usebibmacro{editor}}}
+    {\usebibmacro{author}}%
+  \setunit{\labelnamepunct}\newblock
+  \ifboolexpr{
+    not test {\iffieldundef{booktitle}} or
+    not test {\iffieldundef{maintitle}}
+  }
+    {\usebibmacro{sist:quotedtitle}%
+     \setunit{\addperiod\space}\newblock
+     \iffieldundef{booktitle}
+       {\printfield{maintitle}}
+       {\usebibmacro{sist:booktitle}}}
+    {\usebibmacro{title}}%
+  \setunit{\addperiod\space}\newblock
+  \printfield{version}%
+  \setunit*{\addcomma\space}%
+  \printlist{location}%
+  \setunit*{\addcomma\space}%
+  \iflistundef{publisher}
+    {\printlist{organization}}
+    {\printlist{publisher}}%
+  \setunit*{\addcomma\space}%
+  \iffieldundef{updateyear}
+    {\usebibmacro{sist:date}}
+    {\ifboolexpr{
+       not test {\iffieldundef{year}} and not test {\iffieldsequal{year}{updateyear}}
+     }
+       {\usebibmacro{sist:date}\setunit*{\addcomma\space}\usebibmacro{sist:updatedate}}
+       {\usebibmacro{sist:updatedate}}}%
+  \setunit*{\addcomma\space}%
+  \printfield{doi}%
+  \usebibmacro{sist:noteelements}%
+  \usebibmacro{finentry}}
+
+% 5.13 コンピュータプログラム・ソースコード
+\DeclareBibliographyDriver{software}{%
+  \usebibmacro{bibindex}%
+  \usebibmacro{begentry}%
+  \ifnameundef{author}
+    {\ifnameundef{editor}{}{\usebibmacro{editor}}}
+    {\usebibmacro{author}}%
+  \setunit{\labelnamepunct}\newblock
+  \ifboolexpr{
+    not test {\iffieldundef{booktitle}} or
+    not test {\iffieldundef{maintitle}}
+  }
+    {\usebibmacro{sist:quotedtitle}%
+     \setunit{\addperiod\space}\newblock
+     \iffieldundef{booktitle}
+       {\printfield{maintitle}}
+       {\usebibmacro{sist:booktitle}}}
+    {\usebibmacro{title}}%
+  \setunit{\addperiod\space}\newblock
+  \iffieldundef{version}
+    {\printfield{commit}}
+    {\printfield{version}%
+     \iffieldundef{commit}
+       {}
+       {\setunit{\addspace}\printtext[parens]{\printfield{commit}}}}%
+  \setunit*{\addcomma\space}%
+  \printlist{location}%
+  \setunit*{\addcomma\space}%
+  \iflistundef{publisher}
+    {\printlist{organization}}
+    {\printlist{publisher}}%
+  \setunit*{\addcomma\space}%
+  \iffieldundef{updateyear}
+    {\usebibmacro{sist:date}}
+    {\ifboolexpr{
+       not test {\iffieldundef{year}} and not test {\iffieldsequal{year}{updateyear}}
+     }
+       {\usebibmacro{sist:date}\setunit*{\addcomma\space}\usebibmacro{sist:updatedate}}
+       {\usebibmacro{sist:updatedate}}}%
+  \setunit*{\addcomma\space}%
+  \printfield{doi}%
+  \usebibmacro{sist:noteelements}%
+  \usebibmacro{finentry}}
+
+% 法令・判例
+\DeclareBibliographyDriver{legislation}{%
+  \usebibmacro{bibindex}%
+  \usebibmacro{begentry}%
+  \usebibmacro{title}%
+  \setunit{\addperiod\space}\newblock
+  \printfield{number}%
+  \setunit*{\addcomma\space}%
+  \printlist{organization}%
+  \setunit*{\addcomma\space}%
+  \usebibmacro{sist:date}%
+  \usebibmacro{sist:noteelements}%
+  \usebibmacro{finentry}}
+
+% 映像資料 (video / movie: namea フォールバック対応)
 \DeclareBibliographyDriver{video}{%
   \usebibmacro{bibindex}%
   \usebibmacro{begentry}%
@@ -422,42 +1126,42 @@
     {\ifnameundef{namea}
        {\ifnameundef{editor}
           {}
-          {\printnames{editor}\setunit{\labelnamepunct}}}
-       {\printnames{namea}\setunit{\labelnamepunct}}}
-    {\printnames{author}\setunit{\labelnamepunct}}%
-  \newblock
+          {\usebibmacro{editor}}}
+       {\printnames{namea}}}
+    {\usebibmacro{author}}%
+  \setunit{\labelnamepunct}\newblock
   \usebibmacro{title}%
   \setunit{\addperiod\space}\newblock
-  \printdate%
-  \setunit{\addperiod\space}\newblock
-  \usebibmacro{url+urldate}%
-  \newunit\newblock
-  \printfield{note}%
-  \newunit\newblock
+  \iflistundef{publisher}
+    {\printlist{organization}}
+    {\printlist{publisher}}%
+  \setunit*{\addcomma\space}%
+  \usebibmacro{sist:date}%
+  \usebibmacro{sist:noteelements}%
   \usebibmacro{finentry}}
 
-% misc 用フォールバックドライバ
+% その他資料 (misc フォールバック)
 \DeclareBibliographyDriver{misc}{%
   \usebibmacro{bibindex}%
   \usebibmacro{begentry}%
   \ifnameundef{author}
-    {\ifnameundef{editor}
-       {}
-       {\printnames{editor}\setunit{\labelnamepunct}}}
-    {\printnames{author}\setunit{\labelnamepunct}}%
-  \newblock
+    {\ifnameundef{editor}{}{\usebibmacro{editor}}}
+    {\usebibmacro{author}}%
+  \setunit{\labelnamepunct}\newblock
   \usebibmacro{title}%
   \setunit{\addperiod\space}\newblock
-  \printdate%
-  \setunit{\addperiod\space}\newblock
-  \usebibmacro{url+urldate}%
-  \newunit\newblock
-  \printfield{note}%
-  \newunit\newblock
+  \printfield{howpublished}%
+  \setunit*{\addcomma\space}%
+  \iflistundef{publisher}
+    {\printlist{organization}}
+    {\printlist{publisher}}%
+  \setunit*{\addcomma\space}%
+  \usebibmacro{sist:date}%
+  \usebibmacro{sist:noteelements}%
   \usebibmacro{finentry}}
 
 % ------------------------------------------------------------------------------
-% 8. データモデル全エントリタイプのエイリアスマッピング (36種対応)
+% 9. データモデル全エントリタイプのエイリアスマッピング
 % ------------------------------------------------------------------------------
 % [Aliases]
 \DeclareBibliographyAlias{conference}{inproceedings}
@@ -475,12 +1179,10 @@
 \DeclareBibliographyAlias{image}{misc}
 \DeclareBibliographyAlias{jurisdiction}{legislation}
 \DeclareBibliographyAlias{legal}{legislation}
-\DeclareBibliographyAlias{letter}{misc}
 \DeclareBibliographyAlias{movie}{video}
 \DeclareBibliographyAlias{music}{misc}
 \DeclareBibliographyAlias{performance}{misc}
 \DeclareBibliographyAlias{review}{article}
-\DeclareBibliographyAlias{standard}{report}
 
 % [Regular Types Mapping]
 \DeclareBibliographyAlias{inbook}{incollection}
@@ -491,18 +1193,14 @@
 \DeclareBibliographyAlias{collection}{book}
 \DeclareBibliographyAlias{mvcollection}{book}
 \DeclareBibliographyAlias{suppcollection}{incollection}
-\DeclareBibliographyAlias{dataset}{online}
 \DeclareBibliographyAlias{manual}{report}
 \DeclareBibliographyAlias{periodical}{book}
 \DeclareBibliographyAlias{suppperiodical}{article}
-\DeclareBibliographyAlias{proceedings}{book}
-\DeclareBibliographyAlias{mvproceedings}{book}
+\DeclareBibliographyAlias{mvproceedings}{proceedings}
 \DeclareBibliographyAlias{reference}{book}
 \DeclareBibliographyAlias{mvreference}{book}
 \DeclareBibliographyAlias{inreference}{incollection}
 \DeclareBibliographyAlias{set}{misc}
-\DeclareBibliographyAlias{software}{online}
-\DeclareBibliographyAlias{unpublished}{misc}
 \DeclareBibliographyAlias{xdata}{misc}
 \DeclareBibliographyAlias{customa}{misc}
 \DeclareBibliographyAlias{customb}{misc}

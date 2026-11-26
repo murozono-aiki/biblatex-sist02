@@ -1,0 +1,19 @@
+\ProvidesFile{sist02.dbx}[2026/11/26 v10.0 biblatex data model for SIST02]
+
+% ==============================================================================
+% SIST 02 準拠 biblatex カスタムデータモデル定義 (Data Model)
+% ==============================================================================
+% sist02.bbx で使用する標準外フィールド（媒体表示、入手先、入手日付ラベル、
+% 原資料言語表示、著者名表記スタイル、更新日付、ソースコードコミットID）を定義する。
+
+% リテラル型カスタムフィールド
+\DeclareDatamodelFields[type=field,datatype=literal]{medium,availablesource,accesslabel,origlangdisplay,authorstyle,commit,editionliteral}
+
+% ISO 8601 日付型カスタムフィールド（更新日付: 5.10〜5.13）
+% datatype=date により updateyear, updatemonth, updateday 等が自動生成される
+\DeclareDatamodelFields[type=field,datatype=date,skipout]{updatedate}
+
+% 全エントリタイプへカスタムフィールドを許可
+\DeclareDatamodelEntryfields{medium,availablesource,accesslabel,origlangdisplay,authorstyle,commit,editionliteral,updatedate}
+
+\endinput
