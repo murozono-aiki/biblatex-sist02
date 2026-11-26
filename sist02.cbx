@@ -1,4 +1,4 @@
-\ProvidesFile{sist02.cbx}[2026/05/21 v5.0 biblatex citation style for SIST02 (Strict Numeric Comp)]
+\ProvidesFile{sist02.cbx}[2026/05/21 v6.0 biblatex citation style for SIST02 (Strict Numeric Comp)]
 
 % ==============================================================================
 % SIST 02 準拠 biblatex 引用スタイルファイル (Citation Style)
@@ -7,9 +7,18 @@
 \RequireCitationStyle{numeric-comp}
 
 % ------------------------------------------------------------------------------
-% 1. オプション設定 (複数参照時のソート強制)
+% 1. オプション設定 (複数参照時のソート強制 / 上付き引用切替)
 % ------------------------------------------------------------------------------
 \ExecuteBibliographyOptions{sortcites=true}
+
+% 本文中の引用を上付き [1] にするか通常位置 [1] にするかを切り替えるオプション
+% デフォルト: superscript=true (上付き [1])
+\newtoggle{sist@superscript}
+\toggletrue{sist@superscript}
+
+\DeclareBibliographyOption[boolean]{superscript}[true]{%
+  \settoggle{sist@superscript}{#1}%
+}
 
 % ------------------------------------------------------------------------------
 % 2. 句読点と区切り文字の設定
@@ -21,29 +30,68 @@
 \renewcommand*{\multicitedelim}{\addcomma\space}
 
 % ------------------------------------------------------------------------------
-% 3. 引用フォーマットの再定義 (角括弧ごと上付き文字にする)
+% 3. 引用フォーマットの再定義 (上付き / 通常角括弧の切替)
 % ------------------------------------------------------------------------------
 \newcommand*{\mkbibsuperbrackets}[1]{\textsuperscript{\mkbibbrackets{#1}}}
 
-% ------------------------------------------------------------------------------
-% 4. 引用記号の改行禁止と上付き [1] 化
-% ------------------------------------------------------------------------------
+% 上付き引用時: 直前のスペースを除去し改行を禁止して上付き [1] にする
 \newcommand*{\mkbibsuperbracketsnobreak}[1]{\unskip\nobreak\mkbibsuperbrackets{#1}}
 
-\DeclareCiteCommand{\cite}[\mkbibsuperbracketsnobreak]
+% 通常位置 (非上付き) 引用時: 本文と同じベースラインに [1] を出力する
+\newcommand*{\mkbibinlinebrackets}[1]{\mkbibbrackets{#1}}
+
+% オプション (superscript) に応じて上付き / 通常位置を切り替えるラッパ
+\newcommand*{\mkbibsistcite}[1]{%
+  \iftoggle{sist@superscript}%
+    {\mkbibsuperbracketsnobreak{#1}}%
+    {\mkbibinlinebrackets{#1}}%
+}
+
+% ------------------------------------------------------------------------------
+% 4. 引用コマンドの定義
+% ------------------------------------------------------------------------------
+% 標準引用 (\cite, \parencite): superscript オプションに従う
+\DeclareCiteCommand{\cite}[\mkbibsistcite]
   {\usebibmacro{cite:init}%
    \usebibmacro{prenote}}
-  {\usebibmacro{cite:comp}}
+  {\usebibmacro{citeindex}%
+   \usebibmacro{cite:comp}}
   {}
   {\usebibmacro{cite:dump}%
    \usebibmacro{postnote}}
 
-\DeclareCiteCommand{\parencite}[\mkbibsuperbracketsnobreak]
+\DeclareCiteCommand{\parencite}[\mkbibsistcite]
   {\usebibmacro{cite:init}%
    \usebibmacro{prenote}}
-  {\usebibmacro{cite:comp}}
+  {\usebibmacro{citeindex}%
+   \usebibmacro{cite:comp}}
   {}
   {\usebibmacro{cite:dump}%
    \usebibmacro{postnote}}
+
+% 明示的に上付き [1] を出力する引用コマンド (\supercite)
+\DeclareCiteCommand{\supercite}[\mkbibsuperbracketsnobreak]
+  {\usebibmacro{cite:init}%
+   \usebibmacro{prenote}}
+  {\usebibmacro{citeindex}%
+   \usebibmacro{cite:comp}}
+  {}
+  {\usebibmacro{cite:dump}%
+   \usebibmacro{postnote}}
+
+% 明示的に通常位置 [1] (非上付き) を出力する引用コマンド (\inlinecite)
+\DeclareCiteCommand{\inlinecite}[\mkbibinlinebrackets]
+  {\usebibmacro{cite:init}%
+   \usebibmacro{prenote}}
+  {\usebibmacro{citeindex}%
+   \usebibmacro{cite:comp}}
+  {}
+  {\usebibmacro{cite:dump}%
+   \usebibmacro{postnote}}
+
+\DeclareMultiCiteCommand{\cites}[\mkbibsistcite]{\cite}{\multicitedelim}
+\DeclareMultiCiteCommand{\parencites}[\mkbibsistcite]{\parencite}{\multicitedelim}
+\DeclareMultiCiteCommand{\supercites}[\mkbibsuperbracketsnobreak]{\supercite}{\multicitedelim}
+\DeclareMultiCiteCommand{\inlinecites}[\mkbibinlinebrackets]{\inlinecite}{\multicitedelim}
 
 \endinput

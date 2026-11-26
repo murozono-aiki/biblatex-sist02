@@ -3,89 +3,35 @@
   head_space=30truemm,foot_space=28truemm,gutter=24truemm,fore-edge=24truemm
 ]{jlreq}
 
-% フォント関係
 \usepackage{luatexja-fontspec}
 \setmainfont{Harano Aji Mincho}
 \setsansfont{Harano Aji Gothic}
 \setmainjfont{Harano Aji Mincho}
 \setsansjfont{Harano Aji Gothic}
 
-% 見出し関係
-\ModifyHeading{section}{before_space=25pt,after_space=20pt}
-\ModifyHeading{subsection}{before_space=20pt,after_space=15pt}
-\ModifyHeading{subsubsection}{before_space=15pt,after_space=10pt}
-\SetBlockHeadingSpaces{
-  {_section{before_space=25pt},_subsection{before_space=20pt},_subsubsection{before_space=15pt,after_space=10pt}}
-  {_section{before_space=25pt},_subsection{before_space=20pt,after_space=15pt}}
-  {_subsection{before_space=20pt},_subsubsection{before_space=15pt,after_space=10pt}}
-}
-
-% 基本命令関係
-\renewcommand{\emph}[1]{\textbf{\textsf{\textgt{#1}}}}  % 欧文でも強調はゴシック・太字にする
-
-% 文字関係
-\usepackage{newunicodechar}
-%\newunicodechar{、}{，}
-%\newunicodechar{。}{．}
-
-% 画像挿入関係
-\usepackage{graphicx}
-\usepackage{here}
-\usepackage{wrapfig}
-\setlength{\abovecaptionskip}{4pt}
-\setlength{\belowcaptionskip}{4pt}
-\graphicspath{{figures/}}
-
-% リスト関係
-%\usepackage{enumitem}
-
-% 数式関係
-\usepackage{amsmath,amssymb,amsthm}
-\usepackage{unicode-math}
-\setmathfont{LatinModernMath-Regular}
-
-\everymath{\displaystyle}
-
-\theoremstyle{definition}
-\newtheorem{theorem}{定理}
-\newtheorem{lemma}{補題}
-\newtheorem{corollary}{系}
-\newtheorem*{proof*}{証明}
-\newtheorem{assumption}{仮定}
-\newtheorem{definition}{定義}
-\newtheorem{remark}{注意}
-\newtheorem{proposition}{命題}
-
-\usepackage[per-mode=symbol]{siunitx}
-
-% ルビ関係
-\usepackage{pxrubrica}
-\rubysetup{(-)}
-
-% 参照関係
 \usepackage[hyphens]{url}
 \usepackage[hidelinks]{hyperref}
 
-% タイトル関係
-\newcommand{\subtitle}[1]{\\{---{\large #1}---}}
-\newcommand{\puttitle}[1]{{\LARGE\noindent #1}\vspace{1.2\baselineskip}}
-\newcommand{\puttitles}[2]{{\LARGE\noindent #1}\par\vspace{0.3\baselineskip}{\large\noindent #2}\vspace{1.2\baselineskip}}
-
-% 参考文献関係
 \usepackage[backend=biber,style=sist02]{biblatex}
-\bibliography{references}
+\addbibresource{references.bib}
 
 \pagestyle{empty}
 
-\title{sist02 実行結果}
-\author{\empty}
-\date{\empty}
+\title{biblatex-sist02 (SIST 02-2007 完全記述準拠) 検証}
+\author{}
+\date{}
 
 \begin{document}
-
 \maketitle
 
-書籍の章\cite{著2026見出し}
+\section*{引用テスト}
+和文雑誌\cite{nishi2003}、混在著者名\cite{kennedy2005}、アノテーション指定\cite{annot2026}、欧文誌\cite{fan2006}、特集記事\cite{yamaguchi2005}、言語表示\cite{awano1979}。
+図書\cite{shomei2003,miller2006,vanbreemen1998,lit_edition2025}、図書の章・論文集\cite{ikai2002,murashu2000,belar2004}。
+レポート\cite{kadokura2005,yamamoto2004}、学位論文\cite{takeuchi2001}、会議資料\cite{nakamura2006,metoki2003,ashida2004}。
+プレプリント\cite{wang2005}、特許\cite{mext2006patent,smith2004patent}、規格\cite{jis2002}、投稿中\cite{aiba2006}。
+ウェブサイト\cite{sakamoto2005,smine2005}、メーリングリスト\cite{mckiernan2005}、データベース\cite{sdbs2006,kristensen2006}、ソフトウェア・ソースコード\cite{ooura2001,bibloom_src2026}。
+
+非上付き引用テスト：文献\inlinecite{nishi2003,fan2006}および明示の上付き\supercite{shomei2003}、著者名付き\textcite{kennedy2005}。
 
 \printbibliography[title=参考文献]
 

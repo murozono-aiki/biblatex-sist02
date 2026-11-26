@@ -1,12 +1,337 @@
-@incollection{著2026見出し,
-  title = {見出し},
-  booktitle = {書名},
-  author = {著, 者},
-  editor = {編集, 者},
-  date = {2026-05-16},
-  series = {シリーズ名},
-  edition = {1},
+% ==============================================================================
+% SIST 02-2007 完全記述テスト用文献データベース
+% ==============================================================================
+
+% 4.1.1 / 5.1.1 和文誌 (複数著者 + 漢字/平仮名名「目時のり」)
+@article{nishi2003,
+  author = {西, 潔 and 石原, 和弘},
+  title = {火山地域における震源計算についての提案},
+  journaltitle = {火山},
+  date = {2003},
+  volume = {48},
   number = {5},
-  pages = {109--110},
-  publisher = {出版社}
+  pages = {407--413},
+  langid = {japanese},
+  language = {Japanese}
+}
+
+% 4.1.1 (1) カタカナ外国人名（自動判定で姓, 名）+ 和文著者混在 + 4.1.1 (3)(b) ほか
+@article{kennedy2005,
+  author = {森, 康夫 and ケネディ, ジョン F. and 島田, 俊夫 and others},
+  title = {和文論文における外国人名混在および省略表記のテスト},
+  journaltitle = {情報管理},
+  date = {2005},
+  volume = {48},
+  number = {1},
+  pages = {10--20},
+  langid = {japanese}
+}
+
+% 4.1.1 明示的 author+an アノテーションテスト（カタカナ和文名・欧文扱い指定）
+@article{annot2026,
+  author = {タナカ, タロウ and 佐藤, 花子 and {DeepMind Research}},
+  author+an = {1=japanese; 2=western},
+  title = {著者名個別アノテーション検証論文},
+  journaltitle = {情報処理学会論文誌},
+  date = {2026},
+  volume = {67},
+  number = {3},
+  eid = {e104},
+  doi = {10.1234/ipsj.2026.03}
+}
+
+% 5.1.1 欧文誌・複数著者・et al.・出版地補記 (4.2.2 (5))
+@article{fan2006,
+  author = {Fan, H. and Gabaldon, J. and Brinker, C. J. and others},
+  title = {Ordered nanocrystal/silica particles self-assembled from nanocrystal micelles and silicate},
+  journaltitle = {Chem. Commun.},
+  location = {Camb.},
+  date = {2006},
+  number = {22},
+  pages = {2323--2325},
+  langid = {english}
+}
+
+% 5.1.2 特集標題のある論文 (issuetitle)
+@article{yamaguchi2005,
+  author = {山口, 昌樹},
+  issuetitle = {特集, 元気をもたらすストレス},
+  title = {ストレスをどう測る},
+  journaltitle = {人間生活工学},
+  date = {2005},
+  volume = {6},
+  number = {3},
+  pages = {20--25}
+}
+
+% 4.4.1 原資料言語の表示（欧文文献で和文を参照・和文と異なる言語）
+@article{awano1979,
+  author = {Awano, M.},
+  title = {International standardization of industrial process measurement},
+  journaltitle = {Keisoku To Seigyo},
+  date = {1979},
+  volume = {18},
+  number = {6},
+  pages = {490--495},
+  langid = {english},
+  language = {Japanese}
+}
+
+% 5.2.1 図書１冊（団体編者・版表示・総ページ・シリーズ・ISBN・翻訳者 4.1.4(3)）
+@book{shomei2003,
+  editor = {{照明学会}},
+  title = {照明ハンドブック},
+  edition = {2},
+  publisher = {オーム社},
+  date = {2003},
+  pagetotal = {573},
+  isbn = {978-4-274-03600-2}
+}
+
+@book{miller2006,
+  author = {Miller, James D.},
+  title = {仕事に使えるゲーム理論},
+  translator = {金, 利光},
+  publisher = {東洋経済新報社},
+  date = {2006}
+}
+
+@book{vanbreemen1998,
+  author = {van Breemen, Nico and Buurman, Peter},
+  title = {Soil Formation},
+  location = {Boston},
+  publisher = {Kluwer Academic Publishers},
+  date = {1998},
+  medium = {online},
+  availablesource = {SpringerLink},
+  urldate = {2005-04-02}
+}
+
+% 5.2.2 / 5.2.3 図書の1章・論文集の1論文
+@incollection{ikai2002,
+  author = {鵜飼, 保雄},
+  title = {遺伝率の相対性},
+  booktitle = {量的形質の遺伝解析},
+  publisher = {医学出版},
+  date = {2002},
+  pages = {109--110}
+}
+
+@incollection{murashu2000,
+  author = {村主, 朋英},
+  title = {医学分野における動向},
+  booktitle = {電子メディアは研究を変えるのか},
+  editor = {倉田, 敬子},
+  publisher = {勁草書房},
+  date = {2000},
+  pages = {59--97}
+}
+
+@incollection{belar2004,
+  author = {Belar, Cynthia},
+  title = {Models and concepts},
+  booktitle = {Handbook of Clinical Health Psychology},
+  editor = {Llewelyn, Susan and Kennedy, Paul},
+  publisher = {Wiley InterScience},
+  date = {2004},
+  pages = {7--19},
+  url = {http://www3.interscience.wiley.com/cgi-bin/summary/109870615/SUMMARY},
+  urldate = {2005-12-16},
+  accesslabel = {cited}
+}
+
+% 5.3.1 & 5.3.2 レポート１冊・レポート中の1論文
+@report{kadokura2005,
+  author = {門倉, 真二 and 加藤, 央之},
+  title = {非静力学気象モデルと統計的手法を用いた風速予測手法の評価},
+  publisher = {電力中央研究所},
+  date = {2005},
+  number = {V04032},
+  pagetotal = {22}
+}
+
+@report{yamamoto2004,
+  author = {山本, 正史},
+  title = {クリアランスレベル制度化の現状と問題点},
+  booktitle = {放射性廃棄物管理専門研究会報告書},
+  publisher = {京都大学原子炉実験所},
+  date = {2004},
+  number = {KURRI-KR-113},
+  pages = {67--73}
+}
+
+% 5.4 学位論文
+@thesis{takeuchi2001,
+  author = {竹内, 敬亮},
+  title = {3次元空間における任意視点画像生成のための光線情報取得に関する研究},
+  institution = {東京大学},
+  date = {2001},
+  pagetotal = {141},
+  type = {phdthesis},
+  availablesource = {東京大学学術機関リポジトリ},
+  url = {http://repository.dl.itc.u-tokyo.ac.jp/dspace/bitstream/2261/79/1/116071.pdf},
+  urldate = {2006-05-24}
+}
+
+% 5.5.1, 5.5.2, 5.5.3, 4.2.4(3) 会議資料
+@proceedings{nakamura2006,
+  title = {第47回プログラミング・シンポジウム報告集},
+  editor = {中村, 嘉志 and 多田, 好克},
+  venue = {箱根},
+  eventdate = {2006-01-10/2006-01-12},
+  publisher = {情報処理学会プログラミング・シンポジウム委員会},
+  date = {2006},
+  pagetotal = {212}
+}
+
+@inproceedings{metoki2003,
+  author = {目時, のり and 浅沼, 宏子 and 久保田, 律子},
+  title = {電子カルテシステム稼動2ヶ月後の状況と課題},
+  subtitle = {病棟看護師の意識調査},
+  booktitle = {第4回看護情報研究会論文集},
+  venue = {広島},
+  eventdate = {2003-07-12},
+  publisher = {日本医療情報学会},
+  date = {2003},
+  pages = {26--29},
+  availablesource = {CiNii},
+  url = {http://ci.nii.ac.jp/},
+  urldate = {2006-04-02}
+}
+
+@inproceedings{ashida2004,
+  author = {芦田, 明 and 根木, 純世},
+  title = {腎移植患者における血液中プテリジンの検討},
+  booktitle = {第47回日本腎臓学会学術総会},
+  journaltitle = {日本腎臓学会誌},
+  date = {2004},
+  volume = {46},
+  number = {3},
+  pages = {241},
+  availablesource = {医学・薬学予稿集全文データベース},
+  url = {http://service.jst.go.jp/med-proc/},
+  urldate = {2006-04-02}
+}
+
+% 5.6 プレプリント
+@unpublished{wang2005,
+  author = {Wang, Lifan},
+  title = {Dust around Type Ia supernovae},
+  publisher = {arXiv.org e-Print archive},
+  date = {2005},
+  number = {astro-ph/0511003},
+  url = {http://arxiv.org/abs/astro-ph/0511003},
+  urldate = {2006-04-02}
+}
+
+% 5.7 特許文献
+@patent{mext2006patent,
+  holder = {{文部科学省研究振興局長}},
+  title = {廃プラスチック選別機},
+  number = {特許第3752522号},
+  date = {2006-03-08}
+}
+
+@patent{smith2004patent,
+  author = {Smith, Dave W.},
+  title = {Compact folding aircraft passenger ramp},
+  number = {U. S. Patent 6,676,358},
+  date = {2004-01-13}
+}
+
+% 5.8 規格文書
+@standard{jis2002,
+  number = {JIS L 1902},
+  year = {2002},
+  title = {繊維製品の抗菌性試験方法・抗菌効果}
+}
+
+% 5.9 投稿中の論文
+@article{aiba2006,
+  author = {相場, 秀太郎 and 伊藤, 修一},
+  title = {映像中の嗅覚情報付加による心理的変動の評価},
+  journaltitle = {日本バーチャルリアリティ学会論文誌},
+  pubstate = {submitted}
+}
+
+% 5.10 ウェブサイト・ウェブページ・ブログ（編者・ハンドル名・著者不明）
+@online{sakamoto2005,
+  editor = {坂本, 和夫},
+  title = {パルスレーザーアブレーションにおけるドロップレットフリー薄膜の作製技術},
+  organization = {J-STORE},
+  updatedate = {2005-11-01},
+  url = {http://jstore.jst.go.jp/cgi-bin/techeye/detail.cgi?techeye_id=32},
+  urldate = {2006-06-23}
+}
+
+@online{smine2005,
+  author = {smine},
+  title = {Wellcome Trust, Blackwell/OUP/Springerと助成研究の即時オープンアクセス提供を契約},
+  organization = {オープンアクセスジャパン},
+  updatedate = {2005-12-15},
+  url = {http://www.openaccessjapan.com/archives/2005/12/wellcome_trustb.html},
+  urldate = {2006-05-31}
+}
+
+% 5.11 メーリングリスト・電子掲示板
+@letter{mckiernan2005,
+  author = {Mckiernan, Gerry},
+  title = {iPods and PowerPoint ?},
+  organization = {Chemical Information Sources Discussion List},
+  updatedate = {2005-12-06},
+  url = {https://listserv.indiana.edu/cgi-bin/wa-iub.exe?A2=ind0512&L=chminf-l&T=0&F=&S=&P=7474},
+  urldate = {2006-06-23}
+}
+
+% 5.12 データベース全体 & 一部
+@dataset{sdbs2006,
+  author = {{産業技術総合研究所}},
+  title = {有機化合物のスペクトルデータベース(SDBS)},
+  updatedate = {2006-04-11},
+  availablesource = {研究情報公開データベース（RIO-DB）},
+  url = {http://www.aist.go.jp/RIODB/SDBS/cgi-bin/cre_index.cgi},
+  urldate = {2006-05-31}
+}
+
+@dataset{kristensen2006,
+  author = {Kristensen, O. and others},
+  title = {MMDB: 37793: Crystal Structure of the Ib1 Sh3 dimer at low resolution},
+  booktitle = {MMDB - Entrez's Structure Database},
+  publisher = {National Library of Medicine, National Center of Biotechnology Information},
+  url = {http://www.ncbi.nlm.nih.gov/Structure/MMDB/mmdb.shtml},
+  urldate = {2006-06-30},
+  accesslabel = {cited}
+}
+
+% 5.13 コンピュータプログラム & ソースコード（リポジトリ内ファイル・コミットハッシュ）
+@software{ooura2001,
+  author = {大浦, 拓哉},
+  title = {FFTとAGMによる円周率計算プログラム},
+  version = {Version LG1.1.2-MP1.5.2af},
+  updatedate = {2001-11-05},
+  url = {http://www.kurims.kyoto-u.ac.jp/~ooura/pi_fft-j.html},
+  urldate = {2006-01-19}
+}
+
+@software{bibloom_src2026,
+  author = {山田, 太郎},
+  title = {src/shared/bibtex/generator.ts},
+  booktitle = {BibLoom},
+  version = {Version 1.0.1},
+  commit = {a1b2c3d},
+  organization = {GitHub},
+  updatedate = {2026-11-26},
+  url = {https://github.com/example/bibloom/blob/main/src/shared/bibtex/generator.ts},
+  urldate = {2026-11-26T23:15:00+09:00},
+  langid = {japanese}
+}
+
+% 数字のみの固有版名（editionliteral 検証）
+@book{lit_edition2025,
+  author = {鈴木, 一郎},
+  title = {年次統計年鑑},
+  edition = {2025},
+  editionliteral = {true},
+  publisher = {統計出版},
+  date = {2025}
 }
