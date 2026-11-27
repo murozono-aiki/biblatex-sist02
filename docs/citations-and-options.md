@@ -131,4 +131,4 @@ SIST 02 完全記述の原則に従い、既定では `maxnames=999, minnames=99
 ## 関連ドキュメント
 
 - [カスタムフィールド・言語／著者名判定・対応エントリタイプ一覧](./fields-and-entries.md)
-- [BibLoom 連携仕様（BibLoom リポジトリ内ドキュメント）](https://github.com/murozono-aiki/bibloom/blob/main/docs/reference/biblatex-sist02.md)
+- [BibLoom（SIST 02 対応 Web 文献管理アプリ）](https://bibloom.riyoddoo.com/)

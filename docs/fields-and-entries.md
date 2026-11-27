@@ -44,7 +44,7 @@
 ### 3.1 エントリ全体の記述言語判定
 
 1. `langid` フィールドが明示されている場合（`japanese` / `ja` → 和文、それ以外 → 欧文）はそれを最優先します。
-2. `langid` が未指定の場合、`title` → `booktitle` → `journaltitle` → `maintitle` の順にひらがな・カタカナ・漢字の有無を `expl3` 正規表現で自動判定します。すべて空の場合は `language` を参照します。
+2. `langid` が未指定の場合、`title` → `booktitle` → `journaltitle` → `maintitle` の順にひらがな・カタカナ・漢字の有無をコンパイルエンジンに応じた方式（LuaLaTeX / XeLaTeX では `expl3` Unicode 正規表現、upLaTeX / pLaTeX では内部文字コード判定、pdfLaTeX では UTF-8 バイト列判定）で自動判定します。すべて空の場合は `language` を参照します。
 
 ### 3.2 3 フィールドの役割分担
 
@@ -156,13 +156,13 @@
 @software{bibloom_src2026,
   author          = {Tanaka, Ichiro},
   title           = {generator.ts},
-  booktitle       = {BibLoom},
+  booktitle       = {Sample Reference Manager},
   version         = {1.0.0},
   commit          = {a1b2c3d},
   year            = {2026},
   medium          = {online},
   availablesource = {GitHub},
-  url             = {https://github.com/murozono-aiki/bibloom/blob/main/src/shared/bibtex/generator.ts},
+  url             = {https://github.com/example/sample-reference-manager/blob/main/src/generator.ts},
   urldate         = {2026-11-26}
 }
 ```

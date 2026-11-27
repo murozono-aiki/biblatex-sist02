@@ -44,29 +44,223 @@
 \newtoggle{sist@printednote}
 
 \ExplSyntaxOn
-% 漢字・平仮名・踊り字（和文人名の自動判定用：カタカナのみの外国人名を除外）
-\regex_const:Nn \c_sist_kanji_hira_regex
-  { [\x{3040}-\x{309F}\x{4E00}-\x{9FFF}\x{3400}-\x{4DBF}\x{F900}-\x{FAFF}\x{3005}] }
-
-% 漢字・平仮名・片仮名（文献本文の和文/欧文判定用）
-\regex_const:Nn \c_sist_jp_any_regex
-  { [\x{3040}-\x{309F}\x{30A0}-\x{30FF}\x{4E00}-\x{9FFF}\x{3400}-\x{4DBF}\x{F900}-\x{FAFF}\x{3005}] }
-
-% 先頭が数字（オプションで空白前置）かどうか（Version 表記判定用）
+% 先頭が数字（オプションで空白前置）かどうか（ASCII のみのため全エンジン共通）
 \regex_const:Nn \c_sist_digit_regex
   { \A\s*[0-9] }
 
-% 1段階展開 (\tl_set:No) によりアクセント記号 (\"o 等) を安全に保持したまま正規表現判定
-\cs_new_protected:Npn \sist_if_jp_any:nTF #1#2#3
+% エンジン分岐による日本語文字種判定 (lualatex/xelatex は Unicode l3regex、
+% uplatex/platex は内部文字コード判定、pdflatex 等 8bit エンジンは UTF-8 バイト列判定)
+\bool_lazy_or:nnTF { \sys_if_engine_luatex_p: } { \sys_if_engine_xetex_p: }
   {
-    \tl_set:No \l_tmpa_tl {#1}
-    \regex_match:NVTF \c_sist_jp_any_regex \l_tmpa_tl {#2} {#3}
-  }
+    % 漢字・平仮名・踊り字（和文人名の自動判定用：カタカナのみの外国人名を除外）
+    \regex_const:Nn \c_sist_kanji_hira_regex
+      { [\x{3040}-\x{309F}\x{4E00}-\x{9FFF}\x{3400}-\x{4DBF}\x{F900}-\x{FAFF}\x{3005}] }
 
-\cs_new_protected:Npn \sist_if_kanji_hira:nTF #1#2#3
+    % 漢字・平仮名・片仮名（文献本文の和文/欧文判定用）
+    \regex_const:Nn \c_sist_jp_any_regex
+      { [\x{3040}-\x{309F}\x{30A0}-\x{30FF}\x{4E00}-\x{9FFF}\x{3400}-\x{4DBF}\x{F900}-\x{FAFF}\x{3005}] }
+
+    % 1段階展開 (\tl_set:No) によりアクセント記号 (\"o 等) を安全に保持したまま正規表現判定
+    \cs_new_protected:Npn \sist_if_jp_any:nTF #1#2#3
+      {
+        \tl_set:No \l_tmpa_tl {#1}
+        \regex_match:NVTF \c_sist_jp_any_regex \l_tmpa_tl {#2} {#3}
+      }
+
+    \cs_new_protected:Npn \sist_if_kanji_hira:nTF #1#2#3
+      {
+        \tl_set:No \l_tmpa_tl {#1}
+        \regex_match:NVTF \c_sist_kanji_hira_regex \l_tmpa_tl {#2} {#3}
+      }
+  }
   {
-    \tl_set:No \l_tmpa_tl {#1}
-    \regex_match:NVTF \c_sist_kanji_hira_regex \l_tmpa_tl {#2} {#3}
+    \bool_set_false:N \l_tmpa_bool
+    \bool_set_false:N \l_tmpb_bool
+    \int_new:N \l_sist_utf_state_int
+    \bool_lazy_or:nnTF { \sys_if_engine_ptex_p: } { \sys_if_engine_uptex_p: }
+      {
+        \int_compare:nNnTF { `あ } = { 12354 }
+          {
+            % upLaTeX (内部文字コードが Unicode)
+            \cs_new_protected:Npn \sist_uptex_has_range:nNTF #1#2#3#4
+              {
+                \tl_set:No \l_tmpa_tl {#1}
+                \bool_set_false:N \l_tmpa_bool
+                \tl_analysis_map_inline:Nn \l_tmpa_tl
+                  {
+                    \bool_lazy_or:nnT
+                      {
+                        \bool_lazy_or_p:nn
+                          { \int_compare_p:n { ##2 = "3005 } }
+                          {
+                            \bool_lazy_and_p:nn
+                              { \int_compare_p:n { ##2 >= "3040 } }
+                              { \int_compare_p:n { ##2 <= #2 } }
+                          }
+                      }
+                      {
+                        \bool_lazy_or_p:nn
+                          {
+                            \bool_lazy_and_p:nn
+                              { \int_compare_p:n { ##2 >= "3400 } }
+                              { \int_compare_p:n { ##2 <= "4DBF } }
+                          }
+                          {
+                            \bool_lazy_or_p:nn
+                              {
+                                \bool_lazy_and_p:nn
+                                  { \int_compare_p:n { ##2 >= "4E00 } }
+                                  { \int_compare_p:n { ##2 <= "9FFF } }
+                              }
+                              {
+                                \bool_lazy_and_p:nn
+                                  { \int_compare_p:n { ##2 >= "F900 } }
+                                  { \int_compare_p:n { ##2 <= "FAFF } }
+                              }
+                          }
+                      }
+                      { \bool_set_true:N \l_tmpa_bool \tl_map_break: }
+                  }
+                \bool_if:NTF \l_tmpa_bool {#3} {#4}
+              }
+
+            \cs_new_protected:Npn \sist_if_jp_any:nTF #1#2#3
+              { \sist_uptex_has_range:nNTF {#1} { "30FF } {#2} {#3} }
+
+            \cs_new_protected:Npn \sist_if_kanji_hira:nTF #1#2#3
+              { \sist_uptex_has_range:nNTF {#1} { "309F } {#2} {#3} }
+          }
+          {
+            % pLaTeX (互換モード：内部文字コード > 255、かつ Shift_JIS/EUC/JIS 共通順を利用)
+            \int_const:Nn \c_sist_ptex_odoriji_int { `々 }
+            \int_const:Nn \c_sist_ptex_hira_min_int { `ぁ }
+            \int_const:Nn \c_sist_ptex_hira_max_int { `ん }
+            \int_const:Nn \c_sist_ptex_kana_max_int { `ヶ }
+
+            \cs_new_protected:Npn \sist_if_jp_any:nTF #1#2#3
+              {
+                \tl_set:No \l_tmpa_tl {#1}
+                \bool_set_false:N \l_tmpa_bool
+                \tl_analysis_map_inline:Nn \l_tmpa_tl
+                  {
+                    \int_compare:nNnT { ##2 } > { 255 }
+                      { \bool_set_true:N \l_tmpa_bool \tl_map_break: }
+                  }
+                \bool_if:NTF \l_tmpa_bool {#2} {#3}
+              }
+
+            \cs_new_protected:Npn \sist_if_kanji_hira:nTF #1#2#3
+              {
+                \tl_set:No \l_tmpa_tl {#1}
+                \bool_set_false:N \l_tmpa_bool
+                \tl_analysis_map_inline:Nn \l_tmpa_tl
+                  {
+                    \int_compare:nNnT { ##2 } > { 255 }
+                      {
+                        \bool_lazy_or:nnT
+                          {
+                            \bool_lazy_or_p:nn
+                              { \int_compare_p:nNn { ##2 } = { \c_sist_ptex_odoriji_int } }
+                              { \int_compare_p:nNn { ##2 } > { \c_sist_ptex_kana_max_int } }
+                          }
+                          {
+                            \bool_lazy_and_p:nn
+                              { \int_compare_p:n { ##2 >= \c_sist_ptex_hira_min_int } }
+                              { \int_compare_p:n { ##2 <= \c_sist_ptex_hira_max_int } }
+                          }
+                          { \bool_set_true:N \l_tmpa_bool \tl_map_break: }
+                      }
+                  }
+                \bool_if:NTF \l_tmpa_bool {#2} {#3}
+              }
+          }
+      }
+      {
+        % pdfLaTeX 等の 8bit エンジン向け UTF-8 バイト列検査
+        % state: 0=初期, 1=0xE3直後, 2=0xE3+0x80(記号・々), 3=0xE3+0x82(平仮名後半/片仮名前半), 4=0xE4..0xE9(漢字1byte目), 5=0xE4..0xE9の2byte目確認後
+        \cs_new_protected:Npn \sist_scan_utf8_jp:n #1
+          {
+            \tl_set:No \l_tmpa_tl {#1}
+            \bool_set_false:N \l_tmpa_bool % jp_any
+            \bool_set_false:N \l_tmpb_bool % kanji_hira
+            \int_zero:N \l_sist_utf_state_int
+            \tl_analysis_map_inline:Nn \l_tmpa_tl
+              {
+                \int_compare:nNnT { ##2 } > { -1 }
+                  {
+                    \int_case:nnF { \l_sist_utf_state_int }
+                      {
+                        { 1 }
+                          {
+                            \int_compare:nNnTF { ##2 } = { 128 }
+                              { \int_set:Nn \l_sist_utf_state_int { 2 } }
+                              {
+                                \int_compare:nNnTF { ##2 } = { 129 }
+                                  { \bool_set_true:N \l_tmpa_bool \bool_set_true:N \l_tmpb_bool \int_zero:N \l_sist_utf_state_int }
+                                  {
+                                    \int_compare:nNnTF { ##2 } = { 130 }
+                                      { \int_set:Nn \l_sist_utf_state_int { 3 } }
+                                      {
+                                        \int_compare:nNnT { ##2 } = { 131 }
+                                          { \bool_set_true:N \l_tmpa_bool }
+                                        \int_zero:N \l_sist_utf_state_int
+                                      }
+                                  }
+                              }
+                          }
+                        { 2 }
+                          {
+                            \int_compare:nNnT { ##2 } = { 133 }
+                              { \bool_set_true:N \l_tmpa_bool \bool_set_true:N \l_tmpb_bool }
+                            \int_zero:N \l_sist_utf_state_int
+                          }
+                        { 3 }
+                          {
+                            \bool_lazy_and:nnT { \int_compare_p:n { ##2 >= 128 } } { \int_compare_p:n { ##2 <= 191 } }
+                              {
+                                \bool_set_true:N \l_tmpa_bool
+                                \int_compare:nNnT { ##2 } < { 160 }
+                                  { \bool_set_true:N \l_tmpb_bool }
+                              }
+                            \int_zero:N \l_sist_utf_state_int
+                          }
+                        { 4 }
+                          {
+                            \bool_lazy_and:nnTF { \int_compare_p:n { ##2 >= 128 } } { \int_compare_p:n { ##2 <= 191 } }
+                              { \int_set:Nn \l_sist_utf_state_int { 5 } }
+                              { \int_zero:N \l_sist_utf_state_int }
+                          }
+                        { 5 }
+                          {
+                            \bool_lazy_and:nnT { \int_compare_p:n { ##2 >= 128 } } { \int_compare_p:n { ##2 <= 191 } }
+                              { \bool_set_true:N \l_tmpa_bool \bool_set_true:N \l_tmpb_bool }
+                            \int_zero:N \l_sist_utf_state_int
+                          }
+                      }
+                      {
+                        \int_compare:nNnTF { ##2 } = { 227 }
+                          { \int_set:Nn \l_sist_utf_state_int { 1 } }
+                          {
+                            \bool_lazy_and:nnT { \int_compare_p:n { ##2 >= 228 } } { \int_compare_p:n { ##2 <= 233 } }
+                              { \int_set:Nn \l_sist_utf_state_int { 4 } }
+                          }
+                      }
+                  }
+              }
+          }
+
+        \cs_new_protected:Npn \sist_if_jp_any:nTF #1#2#3
+          {
+            \sist_scan_utf8_jp:n {#1}
+            \bool_if:NTF \l_tmpa_bool {#2} {#3}
+          }
+
+        \cs_new_protected:Npn \sist_if_kanji_hira:nTF #1#2#3
+          {
+            \sist_scan_utf8_jp:n {#1}
+            \bool_if:NTF \l_tmpb_bool {#2} {#3}
+          }
+      }
   }
 
 \cs_new_protected:Npn \sist_if_starts_with_digit:nTF #1#2#3

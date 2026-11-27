@@ -11,7 +11,7 @@
 本スタイルと 1 対 1 で連携する多言語文献管理 PWA **[BibLoom](https://bibloom.riyoddoo.com/)** を利用すると、`.bib` ファイルの手編集なしで SIST 02 完全記述の書誌管理が行えます。
 
 - **Web アプリ**: https://bibloom.riyoddoo.com/
-- **GitHub リポジトリ**: https://github.com/murozono-aiki/bibloom
+- **案内ページ**: https://bibloom.riyoddoo.com/home
 
 ### BibLoom で利用できる連携機能
 
@@ -25,9 +25,13 @@
 
 ## 動作環境とファイル構成
 
-### 必須環境
+### 必須バックエンドと対応エンジン
 
-Unicode 文字種判定（`expl3` 正規表現）および Biber データアノテーション（`author+an` 等）を使用するため、**LuaLaTeX**（または **XeLaTeX**）と **Biber** バックエンドが必須です（`bibtex` バックエンドは非対応です）。
+- **バックエンド**: Biber データアノテーション（`author+an` 等）とカスタムデータモデル（`sist02.dbx`）を使用するため、**Biber** が必須です（`bibtex` バックエンドは非対応）。
+- **TeX エンジン**: **LuaLaTeX / XeLaTeX** だけでなく、**upLaTeX / pLaTeX / pdfLaTeX** でも動作します（LuaLaTeX / XeLaTeX では `expl3` の Unicode 正規表現、upLaTeX / pLaTeX では内部文字コード判定、pdfLaTeX 等では UTF-8 バイト列判定へコンパイルエンジンごとに自動分岐します）。
+
+> [!NOTE]
+> 日本語・欧文が混在する新規文書には、Unicode 直接出力・フォント扱いの容易さから **LuaLaTeX**（`jlreq` + `biber`）を推奨します。
 
 ### パッケージ構成
 
