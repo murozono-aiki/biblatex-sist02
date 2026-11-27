@@ -44,7 +44,7 @@
 ### 3.1 エントリ全体の記述言語判定
 
 1. `langid` フィールドが明示されている場合（`japanese` / `ja` → 和文、それ以外 → 欧文）はそれを最優先します。
-2. `langid` が未指定の場合、`title` → `booktitle` → `journaltitle` → `maintitle` の順にひらがな・カタカナ・漢字の有無をコンパイルエンジンに応じた方式（LuaLaTeX / XeLaTeX では `expl3` Unicode 正規表現、upLaTeX / pLaTeX では内部文字コード判定、pdfLaTeX では UTF-8 バイト列判定）で自動判定します。すべて空の場合は `language` を参照します。
+2. `langid` が未指定の場合、`title` → `booktitle` → `journaltitle` → `maintitle` の順にひらがな・カタカナ・漢字の有無から自動判定します。すべて空の場合は `language` を参照します。
 
 ### 3.2 3 フィールドの役割分担
 
